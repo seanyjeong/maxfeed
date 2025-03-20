@@ -79,7 +79,7 @@
 </div>
 
 <script>
-const api = 'https://supermax.kr';
+const api = 'https://supermax.kr/feed'; // ✅ feed로 변경
 
 async function sendVerification() {
   const phone = document.getElementById('phone').value;
@@ -88,17 +88,17 @@ async function sendVerification() {
     return;
   }
 
-  const res = await fetch(`${api}/auth/send-verification`, {
+  const res = await fetch(`${api}/auth/send-verification`, {  // ✅ /feed/auth로 변경
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ phone })
   });
 
   const data = await res.json();
-  if (data.success) {
+  if (res.ok) {
     alert("인증번호가 전송되었습니다.");
   } else {
-    alert("SMS 전송 실패");
+    alert("SMS 전송 실패: " + (data.error || "서버 오류"));
   }
 }
 
@@ -111,14 +111,14 @@ async function verifyCode() {
     return;
   }
 
-  const res = await fetch(`${api}/auth/verify-code`, {
+  const res = await fetch(`${api}/auth/verify-code`, {  // ✅ /feed/auth로 변경
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ phone, code })
   });
 
   const data = await res.json();
-  if (data.success) {
+  if (res.ok) {
     alert("인증 완료!");
   } else {
     alert("인증번호가 올바르지 않습니다.");
@@ -143,7 +143,7 @@ async function register() {
     return;
   }
 
-  const res = await fetch(`${api}/feed/register`, {
+  const res = await fetch(`${api}/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(user)
