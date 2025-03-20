@@ -376,9 +376,18 @@ console.log("🔹 현재 저장된 user_id:", localStorage.getItem('user_id'));
 
 // ✅ 로그아웃 처리
 function logout() {
-  localStorage.removeItem('token');
-  location.reload();
+    console.log("🚀 로그아웃 실행!");
+    
+    localStorage.removeItem('token');  // 기존 코드: 토큰만 삭제
+    localStorage.removeItem('user_id'); // ✅ 추가: user_id도 삭제
+
+    console.log("✅ 로그아웃 후 LocalStorage 상태:");
+    console.log("🔹 token:", localStorage.getItem('token')); // null이어야 정상
+    console.log("🔹 user_id:", localStorage.getItem('user_id')); // null이어야 정상
+
+    location.reload(); // 페이지 새로고침
 }
+
 
 // ✅ 피드 목록 가져오기 (좋아요/댓글 개수 포함)
 async function loadFeeds(endpoint) {
