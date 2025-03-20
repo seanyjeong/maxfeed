@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>회원가입 - MaxFeed</title>
+  <link href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.min.css" rel="stylesheet">
+</head>
+<body>
+
+<h2>회원가입</h2>
+<input type="text" id="username" placeholder="아이디">
+<input type="password" id="password" placeholder="비밀번호">
+<input type="text" id="name" placeholder="이름">
+<input type="date" id="birth_date">
+<input type="text" id="phone" placeholder="전화번호">
+<input type="text" id="school" placeholder="학교">
+<input type="text" id="grade" placeholder="학년">
+<select id="gender">
+  <option value="male">남성</option>
+  <option value="female">여성</option>
+</select>
+<label><input type="checkbox" id="consent"> 개인정보 제공에 동의</label><br>
+<button onclick="register()">가입하기</button>
+<button onclick="location.href='login.html'">로그인</button>
+
+<script>
+const api = 'https://supermax.kr/feed';
+
+async function register() {
+  const user = {
+    username: document.getElementById('username').value,
+    password: document.getElementById('password').value,
+    name: document.getElementById('name').value,
+    birth_date: document.getElementById('birth_date').value,
+    phone: document.getElementById('phone').value,
+    school: document.getElementById('school').value,
+    grade: document.getElementById('grade').value,
+    gender: document.getElementById('gender').value,
+    consent: document.getElementById('consent').checked
+  };
+
+  const res = await fetch(`${api}/register`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(user)
+  });
+
+  if (res.ok) {
+    alert('가입 성공! 로그인하세요.');
+    location.href = 'login.html';
+  } else alert('가입 실패');
+}
+</script>
+
+</body>
+</html>
