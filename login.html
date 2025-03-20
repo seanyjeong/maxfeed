@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로그인 - MaxFeed</title>
+  <link href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.min.css" rel="stylesheet">
+</head>
+<body>
+
+<h2>로그인</h2>
+<input type="text" id="username" placeholder="아이디">
+<input type="password" id="password" placeholder="비밀번호">
+<button onclick="login()">로그인</button>
+<button onclick="location.href='register.html'">회원가입</button>
+
+<script>
+const api = 'https://supermax.kr/feed';
+
+async function login() {
+  const res = await fetch(`${api}/login`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      username: document.getElementById('username').value,
+      password: document.getElementById('password').value
+    })
+  });
+
+  const data = await res.json();
+  if (res.ok) {
+    localStorage.setItem('token', data.token);
+    alert('로그인 성공!');
+    location.href = 'index.html';
+  } else alert('로그인 실패');
+}
+</script>
+
+</body>
+</html>
