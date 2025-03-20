@@ -183,12 +183,16 @@ video {
   font-size: 1rem;
 }
 
-    .comment {
+.comment {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 5px;
   border-bottom: 1px solid #ddd;
+}
+
+.comment strong {
+  font-weight: bold;
 }
 
 .reply-btn {
@@ -198,6 +202,15 @@ video {
   font-size: 0.9rem;
   color: blue;
   margin-left: 10px;
+}
+
+.delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: red;
+  margin-left: 5px;
 }
 
 .reply-input {
