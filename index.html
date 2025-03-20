@@ -75,24 +75,35 @@
 <script>
 const api = 'https://supermax.kr/feed';
 
-// ✅ 로그인 상태 확인
+
+// ✅ 로그인 상태 확인 및 네비게이션 바 업데이트
 async function checkUser() {
-  const token = localStorage.getItem('token');
-  if (!token) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
 
-  const res = await fetch(`${api}/user-info`, {
-    headers: { 'Authorization': 'Bearer ' + token }
-  });
+    const res = await fetch(`${api}/user-info`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+    });
 
-  if (res.ok) {
-    const data = await res.json();
-    document.getElementById('user-info').textContent = `👤 ${data.name}`;
-    document.getElementById('login-btn').style.display = 'none';
-    document.getElementById('register-btn').style.display = 'none';
-    document.getElementById('logout-btn').style.display = 'inline';
-    document.getElementById('profile-btn').style.display = 'inline';
-  }
+    if (res.ok) {
+        const data = await res.json();
+        
+        // ✅ `undefined` 방지: 기본값 추가
+        const userName = data.name || "사용자";
+        const profileImage = data.profile_image || "https://placehold.co/40x40";
+
+        document.getElementById('user-info').innerHTML = `
+            <img src="${profileImage}" style="width:30px; height:30px; border-radius:50%; margin-right:5px;">
+            👤 ${userName}
+        `;
+
+        document.getElementById('login-btn').style.display = 'none';
+        document.getElementById('register-btn').style.display = 'none';
+        document.getElementById('logout-btn').style.display = 'inline';
+        document.getElementById('profile-btn').style.display = 'inline';
+    }
 }
+
 
 // ✅ 로그아웃 처리
 function logout() {
