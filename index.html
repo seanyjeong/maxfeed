@@ -339,13 +339,16 @@ async function login() {
 
     if (res.ok) {
         const data = await res.json();
-        console.log("✅ 로그인 성공, 응답 데이터:", data); // ✅ 응답 확인
+        console.log("✅ 로그인 성공, 응답 데이터:", data); // ✅ 서버 응답 확인
 
-        if (data.user_id !== undefined) {  // ✅ `user_id`가 있는지 명확히 체크
+        if (data.user_id !== undefined) {  // ✅ user_id 존재 여부 확인
+            console.log("🔹 저장 전 user_id:", localStorage.getItem('user_id'));  // 🔥 저장 전 확인
+
             localStorage.setItem('token', data.token);
-            localStorage.setItem('user_id', String(data.user_id)); // 🔥 문자열로 변환 후 저장
-            console.log("✅ user_id 저장됨:", localStorage.getItem('user_id')); // ✅ 저장 확인
-            location.href = 'index.html';  // ✅ 로그인 후 페이지 이동
+            localStorage.setItem('user_id', String(data.user_id)); // ✅ user_id 저장
+            console.log("🔹 저장 후 user_id:", localStorage.getItem('user_id'));  // 🔥 저장 후 확인
+
+            location.href = 'index.html';  // ✅ 로그인 후 이동
         } else {
             console.error("❌ 서버 응답에 user_id가 없음:", data);
             alert("로그인 실패: user_id가 없습니다.");
@@ -355,6 +358,10 @@ async function login() {
         alert("로그인 실패");
     }
 }
+
+console.log("🛠 페이지 로드됨 - LocalStorage 확인");
+console.log("🔹 현재 저장된 token:", localStorage.getItem('token'));
+console.log("🔹 현재 저장된 user_id:", localStorage.getItem('user_id'));
 
 
 
