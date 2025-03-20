@@ -243,7 +243,7 @@ video {
     margin-bottom: 10px;
   }
 }
-    
+
 
 
 
@@ -293,14 +293,13 @@ video {
 const api = 'https://supermax.kr/feed';
 
 // ✅ 로그인 상태 확인 및 네비게이션 바 업데이트
-// ✅ 로그인 상태 확인 및 네비게이션 바 업데이트
 async function checkUser() {
     const token = localStorage.getItem('token');
     const userId = localStorage.getItem('user_id');  // ✅ user_id 가져오기
 
     if (!token) return;
 
-    const res = await fetch('${api}/user-info', {
+    const res = await fetch(`${api}/user-info`, {
         headers: { 'Authorization': 'Bearer ' + token }
     });
 
@@ -315,12 +314,12 @@ async function checkUser() {
         const userName = data.name || "사용자";
         const profileImage = data.profile_image || "https://placehold.co/40x40";
 
-        document.getElementById('user-info').innerHTML = 
+        document.getElementById('user-info').innerHTML = `
             <div class="profile-info">
                 <img src="${profileImage}">
                 <strong>${userName}</strong>
             </div>
-        ;
+        `;
 
         document.getElementById('login-btn').style.display = 'none';
         document.getElementById('register-btn').style.display = 'none';
@@ -332,7 +331,7 @@ async function login() {
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
 
-    const res = await fetch('${api}/login', {
+    const res = await fetch(`${api}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
@@ -346,10 +345,15 @@ async function login() {
         console.log("🔹 서버 응답에서 받은 user_id:", data.user_id);
         console.log("🔹 서버 응답 JSON 전체:", JSON.stringify(data));
 
-        if (data.user_id !== undefined && data.user_id !== null) {  // ✅ user_id가 있는지 체크
+        if (data.user_id !== undefined && data.user_id !== null) {  // ✅ `user_id`가 있는지 체크
             localStorage.setItem('token', data.token);
             localStorage.setItem('user_id', String(data.user_id)); // 🔥 문자열 변환 후 저장
-            console.log("✅ 저장 후 localStorage user_id:", localStorage.getItem('user_id'));  // ✅ 저장 확인
+
+            // ✅ 저장 후 일정 시간 뒤에 다시 읽기 (Chrome 버그 방지)
+            setTimeout(() => {
+                console.log("✅ 저장 후 LocalStorage user_id:", localStorage.getItem("user_id"));
+            }, 50); // 50ms 뒤에 다시 확인
+
             location.href = 'index.html';  // ✅ 로그인 후 페이지 이동
         } else {
             console.error("❌ 서버 응답에 user_id가 없음 (null 또는 undefined):", data);
@@ -370,10 +374,49 @@ console.log("🔹 현재 저장된 user_id:", localStorage.getItem('user_id'));
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // ✅ 로그아웃 처리
 function logout() {
     console.log("🚀 로그아웃 실행!");
-    
+
     localStorage.removeItem('token');  // 기존 코드: 토큰만 삭제
     localStorage.removeItem('user_id'); // ✅ 추가: user_id도 삭제
 
@@ -564,7 +607,7 @@ async function deleteComment(commentId, feedId) {
         console.error("❌ 댓글 개수 업데이트 실패:", error);
     }
 }
- 
+
 
 
 
