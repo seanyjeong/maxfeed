@@ -438,13 +438,13 @@ async function commentFeed(feedId) {
     }
 
     const comments = await res.json();
-    const userId = localStorage.getItem('user_id'); // 🔥 로그인한 사용자 ID (댓글 삭제 기능용)
+    const userId = localStorage.getItem('user_id'); // 🔥 로그인한 사용자 ID
 
     let commentHTML = "";
     comments.forEach(comment => {
         const isReply = comment.parent_id ? "ㄴ" : ""; // 🔥 대댓글이면 "ㄴ" 표시
         const marginLeft = comment.parent_id ? '20px' : '0'; // 🔥 대댓글 들여쓰기
-        const deleteButton = (userId == comment.user_id) ? `<button class="delete-btn" onclick="deleteComment(${comment.id}, ${feedId})">❌</button>` : ""; // 🔥 내가 쓴 댓글이면 삭제 버튼 표시
+        const deleteButton = (userId && userId == comment.user_id) ? `<button class="delete-btn" onclick="deleteComment(${comment.id}, ${feedId})">❌</button>` : ""; // 🔥 내가 쓴 댓글이면 삭제 버튼 표시
 
         commentHTML += `
             <div class="comment" id="comment-${comment.id}" style="margin-left: ${marginLeft}">
@@ -463,6 +463,7 @@ async function commentFeed(feedId) {
 
     commentsDiv.innerHTML = commentHTML;
 }
+
 
   async function deleteComment(commentId, feedId) {
     const token = localStorage.getItem('token');
