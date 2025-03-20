@@ -341,7 +341,7 @@ async function likeFeed(feedId) {
     }
 }
 
-// ✅ 댓글 불러오기
+/// ✅ 댓글 불러오기
 async function commentFeed(feedId) {
     const commentsDiv = document.getElementById(`comments-${feedId}`);
     if (commentsDiv.innerHTML.trim() !== "") {
@@ -369,7 +369,7 @@ async function commentFeed(feedId) {
     `;
 }
 
-// ✅ 댓글 추가
+// ✅ 댓글 추가 후 카운트 업데이트
 async function addComment(feedId, parentId = null) {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -390,31 +390,10 @@ async function addComment(feedId, parentId = null) {
     });
 
     if (res.ok) {
+        const data = await res.json();
+        document.getElementById(`comment-count-${feedId}`).innerText = `💬 ${data.comment_count}`;
         commentFeed(feedId);
     }
-}
-
-
-// ✅ 대댓글 추가
-async function replyTo(commentId, feedId) {
-    const replyContent = prompt("답글을 입력하세요:");
-    if (!replyContent) return;
-
-    const token = localStorage.getItem('token');
-    if (!token) {
-        alert("로그인이 필요합니다.");
-        return;
-    }
-
-    await fetch(`${api}/add-comment`, {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ feed_id: feedId, content: replyContent, parent_id: commentId })
-    });
-
-    commentFeed(feedId);
-}
-
 // ✅ 초기 실행
 checkUser();
 loadFeeds('/feeds');
