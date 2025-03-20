@@ -508,8 +508,8 @@ async function commentFeed(feedId) {
     commentsDiv.innerHTML = commentHTML;
 }
 
-
-  async function deleteComment(commentId, feedId) {
+// ✅ 댓글삭제.
+async function deleteComment(commentId, feedId) {
     const token = localStorage.getItem('token');
     if (!token) {
         alert("로그인이 필요합니다.");
@@ -525,11 +525,36 @@ async function commentFeed(feedId) {
     });
 
     if (res.ok) {
-        commentFeed(feedId); // 🔥 삭제 후 댓글 새로고침
+        console.log(`✅ 댓글 ${commentId} 삭제됨!`);
+
+        // 🔥 삭제 후 댓글 다시 불러오기
+        commentFeed(feedId);
+
+        // 🔥 댓글 카운트 다시 가져오기
+        updateCommentCount(feedId);
     } else {
         alert("❌ 댓글 삭제 실패!");
     }
 }
+
+ async function updateCommentCount(feedId) {
+    try {
+        const res = await fetch(`${api}/comments/${feedId}`);
+        if (!res.ok) throw new Error("서버 응답 오류");
+
+        const comments = await res.json();
+        const newCommentCount = comments.length; // 🔥 현재 댓글 개수 확인
+
+        // 🔥 댓글 개수 업데이트
+        document.getElementById(`comment-count-${feedId}`).innerText = newCommentCount;
+        console.log(`🔄 댓글 개수 업데이트됨: ${newCommentCount}`);
+
+    } catch (error) {
+        console.error("❌ 댓글 개수 업데이트 실패:", error);
+    }
+}
+ 
+
 
 
 
