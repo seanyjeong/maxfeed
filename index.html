@@ -319,7 +319,7 @@ async function loadFeeds(endpoint) {
     });
 }
 
-// ✅ 좋아요 기능 (좋아요 개수 업데이트 포함)
+// ✅ 좋아요 버튼 업데이트
 async function likeFeed(feedId) {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -333,44 +333,40 @@ async function likeFeed(feedId) {
         body: JSON.stringify({ feed_id: feedId })
     });
 
-    const data = await res.json();
     if (res.ok) {
+        const data = await res.json();
         const likeBtn = document.getElementById(`like-btn-${feedId}`);
-        const likeCount = data.like_count || 0; // ✅ 기본값 0 설정
         likeBtn.classList.toggle("liked", data.liked);
-        likeBtn.innerText = `❤️ ${likeCount}`;
+        likeBtn.innerText = `❤️ ${data.like_count}`;
     }
 }
 
-// ✅ 댓글 표시 (404 해결)
+// ✅ 댓글 불러오기
 async function commentFeed(feedId) {
     const commentsDiv = document.getElementById(`comments-${feedId}`);
     if (commentsDiv.innerHTML.trim() !== "") {
-        commentsDiv.innerHTML = ""; // 댓글 토글 기능 (열려 있으면 닫기)
+        commentsDiv.innerHTML = "";
         return;
     }
 
-    try {
-        const res = await fetch(`${api}/comments/${feedId}`);
-        if (!res.ok) throw new Error(`댓글 불러오기 실패 (${res.status})`);
-
-        const comments = await res.json();
-
-        commentsDiv.innerHTML = comments.map(comment => `
-            <div class="comment">
-                <strong>${comment.name}</strong>: ${comment.content}
-                <button onclick="replyTo(${comment.id}, ${feedId})">↩️ 답글</button>
-            </div>
-        `).join('');
-
-        commentsDiv.innerHTML += `
-            <input type="text" id="comment-input-${feedId}" placeholder="댓글 입력...">
-            <button onclick="addComment(${feedId})">댓글 달기</button>
-        `;
-    } catch (error) {
-        console.error("🔥 댓글 로드 오류:", error);
+    const res = await fetch(`${api}/comments/${feedId}`);
+    if (!res.ok) {
         commentsDiv.innerHTML = "<p>❌ 댓글을 불러올 수 없습니다.</p>";
+        return;
     }
+
+    const comments = await res.json();
+    commentsDiv.innerHTML = comments.map(comment => `
+        <div class="comment">
+            <strong>${comment.name}</strong>: ${comment.content}
+            <button onclick="replyTo(${comment.id}, ${feedId})">↩️ 답글</button>
+        </div>
+    `).join('');
+
+    commentsDiv.innerHTML += `
+        <input type="text" id="comment-input-${feedId}" placeholder="댓글 입력...">
+        <button onclick="addComment(${feedId})">댓글 달기</button>
+    `;
 }
 
 // ✅ 댓글 추가
@@ -397,6 +393,7 @@ async function addComment(feedId, parentId = null) {
         commentFeed(feedId);
     }
 }
+
 
 // ✅ 대댓글 추가
 async function replyTo(commentId, feedId) {
