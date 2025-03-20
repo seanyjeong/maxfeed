@@ -127,33 +127,48 @@ async function verifyCode() {
 
 async function register() {
   const user = {
-    username: document.getElementById('username').value,
-    password: document.getElementById('password').value,
-    name: document.getElementById('name').value,
+    username: document.getElementById('username').value.trim(),
+    password: document.getElementById('password').value.trim(),
+    name: document.getElementById('name').value.trim(),
     birth_date: document.getElementById('birth_date').value,
-    phone: document.getElementById('phone').value,
-    school: document.getElementById('school').value,
-    grade: document.getElementById('grade').value,
+    phone: document.getElementById('phone').value.trim(),
+    school: document.getElementById('school').value.trim(),
+    grade: document.getElementById('grade').value.trim(),
     gender: document.getElementById('gender').value,
     consent: document.getElementById('consent').checked
   };
+
+  // 🔥 ✅ 필수 입력 항목 체크
+  if (!user.username || !user.password || !user.name || !user.birth_date || !user.phone || !user.school || !user.grade) {
+    alert("모든 필수 정보를 입력하세요!");
+    return;
+  }
 
   if (!user.consent) {
     alert("개인정보 제공 동의가 필요합니다.");
     return;
   }
 
-  const res = await fetch(`${api}/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(user)
-  });
+  // ✅ 가입 요청
+  try {
+    const res = await fetch(`${api}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(user)
+    });
 
-  if (res.ok) {
-    alert('가입 성공! 로그인하세요.');
-    location.href = 'login.html';
-  } else {
-    alert('가입 실패');
+    const data = await res.json();
+
+    if (res.ok) {
+      alert('가입 성공! 로그인하세요.');
+      location.href = 'login.html';
+    } else {
+      // ✅ 서버에서 온 오류 메시지를 그대로 출력
+      alert('가입 실패: ' + (data.error || "알 수 없는 오류 발생"));
+    }
+  } catch (error) {
+    alert("서버 연결 오류. 다시 시도하세요.");
+    console.error("🔥 서버 요청 오류:", error);
   }
 }
 </script>
