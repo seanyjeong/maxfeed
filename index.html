@@ -327,19 +327,39 @@ async function likeFeed(feedId) {
         return;
     }
 
-    const res = await fetch(`${api}/like`, {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ feed_id: feedId })
-    });
+    try {
+        const res = await fetch(`${api}/like`, {
+            method: 'POST',
+            headers: { 
+                'Authorization': 'Bearer ' + token, 
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ feed_id: feedId }),
+            credentials: "include"  // ✅ CORS 문제 해결을 위해 추가
+        });
 
-    if (res.ok) {
+        if (!res.ok) {
+            console.error(`🔥 좋아요 요청 실패: ${res.status}`);
+            alert(`좋아요 요청 실패 (${res.status})`);
+            return;
+        }
+
         const data = await res.json();
+        console.log("✅ 좋아요 응답:", data);
+
+        // ✅ 좋아요 버튼 업데이트
         const likeBtn = document.getElementById(`like-btn-${feedId}`);
-        likeBtn.classList.toggle("liked", data.liked);
-        likeBtn.innerText = `❤️ ${data.like_count}`;
+        if (likeBtn) {
+            likeBtn.classList.toggle("liked", data.liked);
+            likeBtn.innerText = `❤️ ${data.like_count}`;
+        }
+
+    } catch (error) {
+        console.error("🔥 좋아요 오류:", error);
+        alert("좋아요 요청 중 오류 발생");
     }
 }
+
 
 /// ✅ 댓글 불러오기
 async function commentFeed(feedId) {
