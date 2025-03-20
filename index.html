@@ -532,20 +532,20 @@ async function commentFeed(feedId) {
     const userId = localStorage.getItem('user_id');  // ✅ 로그인한 사용자 ID
 
     let commentHTML = "";
-    comments.forEach(comment => {
-        const isReply = comment.parent_id ? "ㄴ" : ""; // 🔥 대댓글이면 "ㄴ" 표시
-        const marginLeft = comment.parent_id ? '20px' : '0'; // 🔥 대댓글 들여쓰기
-        const deleteButton = (userId && userId == comment.user_id) ? `<button class="delete-btn" onclick="deleteComment(${comment.id}, ${feedId})">❌</button>` : ""; // ✅ 내가 쓴 댓글만 삭제 버튼 표시
+comments.forEach(comment => {
+    const isReply = comment.parent_id ? "ㄴ" : ""; // 🔥 대댓글이면 "ㄴ" 표시
+    const deleteButton = (userId && userId == comment.user_id) ? `<button class="delete-btn" onclick="deleteComment(${comment.id}, ${feedId})">❌</button>` : ""; // ✅ 내가 쓴 댓글만 삭제 버튼 표시
 
-        commentHTML += `
-            <div class="comment" id="comment-${comment.id}" style="margin-left: ${marginLeft}">
-                <strong>${isReply} ${comment.name}</strong>: ${comment.content}
-                ${deleteButton}
-                <button class="reply-btn" onclick="toggleReplyInput(${comment.id}, ${feedId})">↩️</button>
-                <div id="reply-input-${comment.id}" class="reply-input"></div>
-            </div>
-        `;
-    });
+    commentHTML += `
+        <div class="comment" id="comment-${comment.id}">
+            <strong>${isReply} ${comment.name}</strong>: ${comment.content}
+            ${deleteButton}
+            <button class="reply-btn" onclick="toggleReplyInput(${comment.id}, ${feedId})">↩️</button>
+        </div>
+        <div id="reply-container-${comment.id}" class="reply-container"></div> <!-- 🔥 입력창 들어갈 자리 -->
+    `;
+});
+
 
     commentHTML += `
         <input type="text" id="comment-input-${feedId}" placeholder="댓글 입력...">
@@ -608,20 +608,23 @@ async function deleteComment(commentId, feedId) {
 
 // ✅ 답글 입력창 토글 (대댓글 입력창을 클릭한 댓글 아래에 표시)
 function toggleReplyInput(commentId, feedId) {
-    const replyInputDiv = document.getElementById(`reply-input-${commentId}`);
+    const replyContainer = document.getElementById(`reply-container-${commentId}`);
 
     // ✅ 입력창이 이미 있으면 삭제 (토글 기능)
-    if (replyInputDiv.innerHTML.trim() !== "") {
-        replyInputDiv.innerHTML = "";
+    if (replyContainer.innerHTML.trim() !== "") {
+        replyContainer.innerHTML = "";
         return;
     }
 
-    // ✅ 대댓글 입력창 생성
-    replyInputDiv.innerHTML = `
-        <input type="text" id="reply-input-field-${commentId}" placeholder="답글 입력...">
-        <button onclick="addComment(${feedId}, ${commentId})">답글 작성</button>
+    // ✅ 입력창을 기존 댓글 아래에 바로 삽입
+    replyContainer.innerHTML = `
+        <div class="reply-input">
+            <input type="text" id="reply-input-field-${commentId}" placeholder="답글 입력...">
+            <button onclick="addComment(${feedId}, ${commentId})">답글 작성</button>
+        </div>
     `;
 }
+
 // ✅ 댓글 추가 후 카운트 업데이트
 // ✅ 댓글 추가 API 요청
 async function addComment(feedId, parentId = null) {
