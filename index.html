@@ -293,55 +293,46 @@ video {
 const api = 'https://supermax.kr/feed';
 
 // ✅ 로그인 상태 확인 및 네비게이션 바 업데이트
+// ✅ 로그인 상태 확인 및 네비게이션 바 업데이트
 async function checkUser() {
     const token = localStorage.getItem('token');
-    let userId = localStorage.getItem('user_id');
+    const userId = localStorage.getItem('user_id');  // ✅ user_id 가져오기
 
     if (!token) return;
 
-    if (!userId) {
-        console.warn("⚠️ user_id가 LocalStorage에 없음! 서버에서 다시 가져옵니다.");
-        
-        // ✅ 서버에서 user_id & username 다시 가져오기
-        const res = await fetch(`${api}/user-info`, {
-            headers: { 'Authorization': 'Bearer ' + token }
-        });
+    const res = await fetch(${api}/user-info, {
+        headers: { 'Authorization': 'Bearer ' + token }
+    });
 
-        if (res.ok) {
-            const data = await res.json();
-            userId = data.user_id;
-            localStorage.setItem('user_id', String(userId)); 
-            localStorage.setItem('username', data.username || "사용자"); // 🔥 저장 추가
-            localStorage.setItem('profile_image', data.profile_image || "https://placehold.co/40x40");
-            console.log("✅ 서버에서 받은 user_id:", userId);
+    if (res.ok) {
+        const data = await res.json();
+
+        // ✅ user_id가 없으면, localStorage에 저장
+        if (!userId) {
+            localStorage.setItem('user_id', data.user_id);
         }
+
+        const userName = data.name || "사용자";
+        const profileImage = data.profile_image || "https://placehold.co/40x40";
+
+        document.getElementById('user-info').innerHTML = 
+            <div class="profile-info">
+                <img src="${profileImage}">
+                <strong>${userName}</strong>
+            </div>
+        ;
+
+        document.getElementById('login-btn').style.display = 'none';
+        document.getElementById('register-btn').style.display = 'none';
+        document.getElementById('logout-btn').style.display = 'inline';
+        document.getElementById('profile-btn').style.display = 'inline';
     }
-
-    // 🔥 네비게이션 업데이트
-    const userName = localStorage.getItem('username') || "사용자"; 
-    const profileImage = localStorage.getItem('profile_image') || "https://placehold.co/40x40";
-
-    console.log("🔹 네비게이션 표시 이름:", userName);
-    
-    document.getElementById('user-info').innerHTML = `
-        <div class="profile-info">
-            <img src="${profileImage}">
-            <strong>${userName}</strong>
-        </div>
-    `;
-
-    document.getElementById('login-btn').style.display = 'none';
-    document.getElementById('register-btn').style.display = 'none';
-    document.getElementById('logout-btn').style.display = 'inline';
-    document.getElementById('profile-btn').style.display = 'inline';
 }
-
-
 async function login() {
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
 
-    const res = await fetch(`${api}/login`, {
+    const res = await fetch(${api}/login, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
@@ -349,19 +340,17 @@ async function login() {
 
     if (res.ok) {
         const data = await res.json();
-        console.log("✅ 로그인 성공, 응답 데이터:", data);
+        console.log("✅ 로그인 성공, 응답 데이터:", data); // ✅ 서버 응답 확인
 
-        // 🔥 user_id, username, profile_image 저장 추가
-        if (data.user_id !== undefined && data.user_id !== null) {  
+        // 🔥 여기서 user_id 값을 강제로 찍어보자!
+        console.log("🔹 서버 응답에서 받은 user_id:", data.user_id);
+        console.log("🔹 서버 응답 JSON 전체:", JSON.stringify(data));
+
+        if (data.user_id !== undefined && data.user_id !== null) {  // ✅ user_id가 있는지 체크
             localStorage.setItem('token', data.token);
-            localStorage.setItem('user_id', String(data.user_id)); 
-            localStorage.setItem('username', data.username || "사용자"); // 🔥 저장 추가
-            localStorage.setItem('profile_image', data.profile_image || "https://placehold.co/40x40"); // 기본 이미지
-
-            setTimeout(() => {
-                console.log("✅ 저장 후 LocalStorage user_id:", localStorage.getItem("user_id"));
-                location.href = 'index.html';  // ✅ 로그인 후 페이지 이동
-            }, 100);
+            localStorage.setItem('user_id', String(data.user_id)); // 🔥 문자열 변환 후 저장
+            console.log("✅ 저장 후 localStorage user_id:", localStorage.getItem('user_id'));  // ✅ 저장 확인
+            location.href = 'index.html';  // ✅ 로그인 후 페이지 이동
         } else {
             console.error("❌ 서버 응답에 user_id가 없음 (null 또는 undefined):", data);
             alert("로그인 실패: user_id가 없습니다.");
@@ -371,7 +360,6 @@ async function login() {
         alert("로그인 실패");
     }
 }
-
 
 
 
