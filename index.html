@@ -348,7 +348,12 @@ async function login() {
         if (data.user_id !== undefined && data.user_id !== null) {  // ✅ `user_id`가 있는지 체크
             localStorage.setItem('token', data.token);
             localStorage.setItem('user_id', String(data.user_id)); // 🔥 문자열 변환 후 저장
-            console.log("✅ 저장 후 localStorage user_id:", localStorage.getItem('user_id'));  // ✅ 저장 확인
+
+            // ✅ 저장 후 일정 시간 뒤에 다시 읽기 (Chrome 버그 방지)
+            setTimeout(() => {
+                console.log("✅ 저장 후 LocalStorage user_id:", localStorage.getItem("user_id"));
+            }, 50); // 50ms 뒤에 다시 확인
+
             location.href = 'index.html';  // ✅ 로그인 후 페이지 이동
         } else {
             console.error("❌ 서버 응답에 user_id가 없음 (null 또는 undefined):", data);
@@ -359,6 +364,7 @@ async function login() {
         alert("로그인 실패");
     }
 }
+
 
 
 console.log("🛠 페이지 로드됨 - LocalStorage 확인");
