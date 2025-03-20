@@ -300,7 +300,7 @@ async function checkUser() {
 
     if (!token) return;
 
-    const res = await fetch(${api}/user-info, {
+    const res = await fetch('${api}/user-info', {
         headers: { 'Authorization': 'Bearer ' + token }
     });
 
@@ -332,7 +332,7 @@ async function login() {
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
 
-    const res = await fetch(${api}/login, {
+    const res = await fetch('${api}/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
