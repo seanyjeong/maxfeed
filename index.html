@@ -6,23 +6,55 @@
   <title>MaxFeed</title>
   <link href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.min.css" rel="stylesheet">
   <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    /* 🔥 네비게이션 바 스타일 */
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      border-bottom: 2px solid #ddd;
+      background: white;
+      flex-wrap: nowrap;  /* ✅ 줄바꿈 방지 */
+      overflow: hidden;  /* ✅ 내용이 넘칠 경우 숨김 */
+    }
+
+    nav .logo { font-size: 1.5rem; font-weight: bold; }
+    
+    nav .buttons {
+      display: flex;
+      gap: 5px;
+      white-space: nowrap; /* ✅ 버튼이 줄바꿈되지 않도록 설정 */
+    }
+
+    nav button {
+      padding: 5px 10px;
+      font-size: 0.9rem;
+    }
+
+    /* ✅ 모바일 화면 대응 */
+    @media screen and (max-width: 480px) {
+      nav { flex-direction: column; align-items: flex-start; }
+      nav .buttons { margin-top: 10px; flex-wrap: wrap; }
+    }
+
     .feed { border-bottom: 1px solid #ddd; padding: 15px 0; }
     .profile { display: flex; align-items: center; margin-bottom: 5px; }
     .profile img { width: 40px; height: 40px; border-radius: 50%; margin-right: 10px; }
     .media img, video { max-height: 300px; width: 100%; object-fit: cover; border-radius: 8px; }
-    nav { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 2px solid #ddd; }
-    nav .buttons button { margin-left: 5px; }
   </style>
 </head>
 <body>
 
 <!-- 🔥 네비게이션 바 -->
 <nav>
-  <h2>🔥 Max Feed 🔥</h2>
+  <span class="logo">🔥 Max Feed</span>
   <div class="buttons">
     <span id="user-info"></span>
     <button id="login-btn" onclick="location.href='login.html'">로그인</button>
     <button id="register-btn" onclick="location.href='register.html'">회원가입</button>
+    <button id="profile-btn" style="display: none;" onclick="location.href='profile.html'">내 정보</button>
     <button id="logout-btn" style="display: none;" onclick="logout()">로그아웃</button>
   </div>
 </nav>
@@ -58,6 +90,7 @@ async function checkUser() {
     document.getElementById('login-btn').style.display = 'none';
     document.getElementById('register-btn').style.display = 'none';
     document.getElementById('logout-btn').style.display = 'inline';
+    document.getElementById('profile-btn').style.display = 'inline';
   }
 }
 
