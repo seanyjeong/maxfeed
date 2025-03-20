@@ -223,7 +223,6 @@ video {
 <script>
 const api = 'https://supermax.kr/feed';
 
-
 // ✅ 로그인 상태 확인 및 네비게이션 바 업데이트
 async function checkUser() {
     const token = localStorage.getItem('token');
@@ -254,9 +253,6 @@ async function checkUser() {
         document.getElementById('profile-btn').style.display = 'inline';
     }
 }
-
-
-
 
 // ✅ 로그아웃 처리
 function logout() {
@@ -302,9 +298,11 @@ async function loadFeeds(endpoint) {
                 <button onclick="likeFeed(${feed.id})">👍 좋아요</button>
                 <button onclick="commentFeed(${feed.id})">💬 댓글</button>
             </div>
+            <div id="comments-${feed.id}" class="comments"></div>
         </div>`;
     });
 }
+
 // ✅ 좋아요 기능
 async function likeFeed(feedId) {
     const token = localStorage.getItem('token');
@@ -323,11 +321,17 @@ async function likeFeed(feedId) {
     alert(data.liked ? "좋아요 추가됨!" : "좋아요 취소됨!");
 }
 
-// ✅ 댓글 표시
-async function showComments(feedId) {
+// ✅ 댓글 표시 함수 추가 (🔥 수정된 부분)
+async function commentFeed(feedId) {
+    const commentsDiv = document.getElementById(`comments-${feedId}`);
+    if (commentsDiv.innerHTML.trim() !== "") {
+        commentsDiv.innerHTML = ""; // 댓글 토글 기능 (열려 있으면 닫기)
+        return;
+    }
+
     const res = await fetch(`${api}/comments/${feedId}`);
     const comments = await res.json();
-    const commentsDiv = document.getElementById(`comments-${feedId}`);
+
     commentsDiv.innerHTML = comments.map(comment => `
         <div class="comment">
             <strong>${comment.name}</strong>: ${comment.content}
@@ -361,14 +365,34 @@ async function addComment(feedId, parentId = null) {
         body: JSON.stringify({ feed_id: feedId, content, parent_id: parentId })
     });
 
-    showComments(feedId);
+    commentFeed(feedId);
 }
 
+// ✅ 대댓글 추가
+async function replyTo(commentId, feedId) {
+    const replyContent = prompt("답글을 입력하세요:");
+    if (!replyContent) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+        alert("로그인이 필요합니다.");
+        return;
+    }
+
+    await fetch(`${api}/add-comment`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feed_id: feedId, content: replyContent, parent_id: commentId })
+    });
+
+    commentFeed(feedId);
+}
 
 // ✅ 초기 실행
 checkUser();
 loadFeeds('/feeds');
 </script>
+
 
 </body>
 </html>
