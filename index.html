@@ -425,12 +425,18 @@ async function commentFeed(feedId) {
     }
 
     const comments = await res.json();
+    const userId = localStorage.getItem('user_id'); // 🔥 로그인한 사용자 ID (댓글 삭제 기능용)
 
     let commentHTML = "";
     comments.forEach(comment => {
+        const isReply = comment.parent_id ? "ㄴ" : ""; // 🔥 대댓글이면 "ㄴ" 표시
+        const marginLeft = comment.parent_id ? '20px' : '0'; // 🔥 대댓글 들여쓰기
+        const deleteButton = (userId == comment.user_id) ? `<button class="delete-btn" onclick="deleteComment(${comment.id}, ${feedId})">❌</button>` : ""; // 🔥 내가 쓴 댓글이면 삭제 버튼 표시
+
         commentHTML += `
-            <div class="comment" id="comment-${comment.id}" style="margin-left: ${comment.parent_id ? '20px' : '0'}">
-                <strong>${comment.name}</strong>: ${comment.content}
+            <div class="comment" id="comment-${comment.id}" style="margin-left: ${marginLeft}">
+                <strong>${isReply} ${comment.name}</strong>: ${comment.content}
+                ${deleteButton}
                 <button class="reply-btn" onclick="toggleReplyInput(${comment.id}, ${feedId})">↩️</button>
                 <div id="reply-input-${comment.id}" class="reply-input"></div>
             </div>
@@ -444,6 +450,30 @@ async function commentFeed(feedId) {
 
     commentsDiv.innerHTML = commentHTML;
 }
+
+  async function deleteComment(commentId, feedId) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        alert("로그인이 필요합니다.");
+        return;
+    }
+
+    if (!confirm("댓글을 삭제하시겠습니까?")) return; // 🔥 삭제 확인
+
+    const res = await fetch(`${api}/delete-comment`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comment_id: commentId })
+    });
+
+    if (res.ok) {
+        commentFeed(feedId); // 🔥 삭제 후 댓글 새로고침
+    } else {
+        alert("❌ 댓글 삭제 실패!");
+    }
+}
+
+
 
 
 // ✅ 답글 입력창 토글 (대댓글 입력창을 클릭한 댓글 아래에 표시)
