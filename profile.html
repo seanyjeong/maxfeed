@@ -11,6 +11,7 @@
 <h2>내 정보 수정</h2>
 
 <!-- 프로필 이미지 -->
+<img id="profile_img" src="https://placehold.co/100x100" alt="프로필 이미지" style="border-radius: 50%;">
 <label>프로필 이미지</label>
 <input type="file" id="profile_image">
 
@@ -38,6 +39,18 @@
 <script>
 const api = 'https://supermax.kr/feed';
 
+// ✅ 현재 프로필 이미지 가져오기
+async function loadProfile() {
+    const res = await fetch(`${api}/user-info`, {
+        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+    });
+    const data = await res.json();
+    if (data.success) {
+        document.getElementById('profile_img').src = data.profile_image || "https://placehold.co/100x100";
+    }
+}
+
+// ✅ 내 정보 수정 요청
 async function updateProfile() {
     const formData = new FormData();
     const fileInput = document.getElementById('profile_image');
@@ -47,16 +60,13 @@ async function updateProfile() {
     const new_password = document.getElementById('new_password').value;
     const confirm_password = document.getElementById('confirm_password').value;
 
-    if (fileInput.files.length) {
-        formData.append('profile_image', fileInput.files[0]);
-    }
+    if (fileInput.files.length) formData.append('profile_image', fileInput.files[0]);
     if (phone) formData.append('phone', phone);
     if (birth_date) formData.append('birth_date', birth_date);
     if (current_password) formData.append('current_password', current_password);
     if (new_password) formData.append('new_password', new_password);
     if (confirm_password) formData.append('confirm_password', confirm_password);
 
-    // 🔥 새 비밀번호 확인 (두 번 입력이 다르면 중단)
     if (new_password && new_password !== confirm_password) {
         alert("새 비밀번호가 일치하지 않습니다!");
         return;
@@ -68,15 +78,20 @@ async function updateProfile() {
         body: formData
     });
 
+    const data = await res.json();
     if (res.ok) {
         alert('수정 완료!');
+        if (data.profile_url) {
+            document.getElementById('profile_img').src = data.profile_url; // ✅ **프로필 이미지 갱신**
+        }
         location.href = 'index.html';
     } else {
-        const errorData = await res.json();
-        console.error("🔥 서버 응답 오류:", errorData);
-        alert('수정 실패: ' + (errorData.error || '알 수 없는 오류'));
+        console.error("🔥 서버 응답 오류:", data);
+        alert('수정 실패: ' + (data.error || '알 수 없는 오류'));
     }
 }
+
+loadProfile(); // ✅ **페이지 로드 시 프로필 이미지 불러오기**
 </script>
 
 </body>
