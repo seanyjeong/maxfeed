@@ -18,9 +18,22 @@
 const api = 'https://supermax.kr/feed';
 
 async function addFeed() {
+  console.log("🚀 addFeed() 실행됨!"); // ✅ 이 로그가 뜨는지 확인!
+
+  const fileInput = document.getElementById('file');
+  const content = document.getElementById('content').value;
+
+  console.log("📂 파일 정보:", fileInput.files[0]); // ✅ 파일이 선택되었는지 확인!
+  console.log("📝 내용:", content); // ✅ 내용이 정상적으로 들어갔는지 확인!
+
+  if (!fileInput.files.length) {
+    alert('파일을 선택하세요!');
+    return;
+  }
+
   const formData = new FormData();
-  formData.append('content', document.getElementById('content').value);
-  formData.append('file', document.getElementById('file').files[0]);
+  formData.append('content', content);
+  formData.append('file', fileInput.files[0]);
 
   const res = await fetch(`${api}/add-feed`, {
     method: 'POST',
@@ -31,8 +44,13 @@ async function addFeed() {
   if (res.ok) {
     alert('업로드 완료');
     location.href = 'index.html';
-  } else alert('업로드 실패');
+  } else {
+    const errorData = await res.json();
+    console.error("🔥 서버 응답 오류:", errorData);
+    alert('업로드 실패: ' + (errorData.error || '알 수 없는 오류'));
+  }
 }
+
 </script>
 
 </body>
