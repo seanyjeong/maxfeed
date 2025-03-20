@@ -8,36 +8,113 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     
-    /* 🔥 네비게이션 바 스타일 */
-    nav {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px;
-      border-bottom: 2px solid #ddd;
-      background: white;
-      flex-wrap: nowrap;  /* ✅ 줄바꿈 방지 */
-      overflow: hidden;  /* ✅ 내용이 넘칠 경우 숨김 */
-    }
+/* 🔥 네비게이션 바 스타일 */
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border-bottom: 2px solid #ddd;
+  background: white;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  position: relative;
+}
 
-    nav .logo { font-size: 1.5rem; font-weight: bold; }
-    
-    nav .buttons {
-      display: flex;
-      gap: 5px;
-      white-space: nowrap; /* ✅ 버튼이 줄바꿈되지 않도록 설정 */
-    }
+/* 🔥 타이틀 중앙 정렬 */
+nav .logo {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.6rem;
+  font-weight: bold;
+  text-align: center;
+  white-space: nowrap;
+}
 
-    nav button {
-      padding: 5px 10px;
-      font-size: 0.9rem;
-    }
+/* 🔥 오른쪽 버튼 영역 정렬 */
+nav .buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
 
-    /* ✅ 모바일 화면 대응 */
-    @media screen and (max-width: 480px) {
-      nav { flex-direction: column; align-items: flex-start; }
-      nav .buttons { margin-top: 10px; flex-wrap: wrap; }
-    }
+/* 🔥 프로필 정보 정렬 */
+nav .profile-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+nav .profile-info img {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  border: 2px solid #ddd; /* 프로필 이미지 경계선 추가 */
+}
+
+/* 🔥 피드 목록 버튼 중앙 정렬 */
+.feed-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin: 20px 0;
+}
+
+/* 🔥 좋아요 / 댓글 버튼 중앙 정렬 */
+.feed .actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+/* 🔥 네비게이션 바 아래 간격 추가 (반응형 대응) */
+.nav-spacing {
+  margin-top: 15px; /* ✅ 네비게이션 바와 첫 번째 섹션 간격 */
+}
+
+@media screen and (max-width: 480px) {
+  .nav-spacing {
+    margin-top: 10px; /* ✅ 모바일에서는 간격을 줄여서 균형 맞춤 */
+  }
+}
+
+/* 🔥 피드 작성 버튼 중앙 정렬 */
+.upload-section {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0 10px; /* ✅ 네비게이션 바와의 간격 조정 & 피드 목록 버튼과 균형 */
+}
+
+/* 🔥 피드 목록 버튼 중앙 정렬 */
+.feed-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+/* 🔥 피드 카드 스타일 */
+.feed {
+  background: #f9f9f9;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+/* ✅ 모바일 화면 대응 */
+@media screen and (max-width: 480px) {
+  nav { flex-direction: column; align-items: center; text-align: center; }
+  nav .buttons { margin-top: 10px; flex-wrap: wrap; justify-content: center; }
+  .logo { position: static; transform: none; margin-bottom: 10px; }
+  .upload-section { margin: 15px 0 10px; } /* ✅ 모바일에서는 간격을 조금 더 줄임 */
+}
+
+
+
 
     .feed { border-bottom: 1px solid #ddd; padding: 15px 0; }
     .profile { display: flex; align-items: center; margin-bottom: 5px; }
@@ -51,7 +128,7 @@
 <nav>
   <span class="logo">🔥 Max Feed</span>
   <div class="buttons">
-    <span id="user-info"></span>
+    <div id="user-info" class="profile-info"></div>
     <button id="login-btn" onclick="location.href='login.html'">로그인</button>
     <button id="register-btn" onclick="location.href='register.html'">회원가입</button>
     <button id="profile-btn" style="display: none;" onclick="location.href='profile.html'">내 정보</button>
@@ -59,18 +136,28 @@
   </div>
 </nav>
 
+<!-- ✅ 네비게이션 바 아래 여백 추가 -->
+<div class="nav-spacing"></div>
+
 <!-- 📝 피드 업로드 페이지 이동 -->
-<section>
+<div class="upload-section">
   <button onclick="location.href='upload.html'">✏️ 피드 작성</button>
-</section>
+</div>
+
+
+<!-- 📌 피드 목록 버튼 중앙 정렬 -->
+<div class="feed-buttons">
+  <button onclick="loadFeeds('/feeds')">전체 피드</button>
+  <button onclick="loadFeeds('/my-feeds')">내 피드</button>
+</div>
+
 
 <!-- 📌 피드 목록 -->
 <section>
   <h3>📌 피드 목록</h3>
-  <button onclick="loadFeeds('/feeds')">전체 피드</button>
-  <button onclick="loadFeeds('/my-feeds')">내 피드</button>
   <div id="feeds"></div>
 </section>
+
 
 <script>
 const api = 'https://supermax.kr/feed';
@@ -92,10 +179,12 @@ async function checkUser() {
         const userName = data.name || "사용자";
         const profileImage = data.profile_image || "https://placehold.co/40x40";
 
-        // ✅ 프로필 이미지 + 이름 표시
+        // ✅ 프로필 정보 업데이트 (정렬 유지)
         document.getElementById('user-info').innerHTML = `
-            <img src="${profileImage}" style="width:30px; height:30px; border-radius:50%; margin-right:5px;">
-            👤 ${userName}
+            <div class="profile-info">
+                <img src="${profileImage}">
+                <strong>${userName}</strong>
+            </div>
         `;
 
         document.getElementById('login-btn').style.display = 'none';
@@ -104,6 +193,8 @@ async function checkUser() {
         document.getElementById('profile-btn').style.display = 'inline';
     }
 }
+
+
 
 
 // ✅ 로그아웃 처리
@@ -146,11 +237,15 @@ async function loadFeeds(endpoint) {
             </div>
             <p>${feed.content || ''}</p>
             ${feed.media_url ? (feed.media_url.includes('.mp4') ? `<video controls src="${feed.media_url}"></video>` : `<img src="${feed.media_url}">`) : ''}
-            <button onclick="likeFeed(${feed.id})">👍좋아요</button>
-            <button onclick="commentFeed(${feed.id})">💬댓글</button>
+            <div class="actions">
+                <button onclick="likeFeed(${feed.id})">👍 좋아요</button>
+                <button onclick="commentFeed(${feed.id})">💬 댓글</button>
+            </div>
         </div>`;
     });
 }
+
+
 
 // ✅ 좋아요 기능 (추후 개발)
 async function likeFeed(feedId) { alert('좋아요 기능 준비 중'); }
