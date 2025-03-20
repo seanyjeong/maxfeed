@@ -168,6 +168,21 @@ video {
   gap: 12px;
   margin-top: 10px;
 }
+    .icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px;
+}
+
+.icon-btn span {
+  font-size: 1rem;
+}
+
 
 /* ✅ 모바일 화면 대응 */
 @media screen and (max-width: 480px) {
@@ -312,7 +327,10 @@ async function loadFeeds(endpoint) {
             ${feed.media_url ? (feed.media_url.includes('.mp4') ? `<video controls src="${feed.media_url}"></video>` : `<img src="${feed.media_url}">`) : ''}
             <div class="actions">
                 <button class="like-btn ${likedClass}" id="like-btn-${feed.id}" onclick="likeFeed(${feed.id})">❤️ ${likeCount}</button>
-                <button id="comment-btn-${feed.id}" onclick="commentFeed(${feed.id})">💬 ${commentCount}</button>
+               <button id="comment-btn-${feed.id}" onclick="commentFeed(${feed.id})" class="icon-btn">
+    <span>💬</span> <span id="comment-count-${feed.id}">${commentCount}</span>
+</button>
+
             </div>
             <div id="comments-${feed.id}" class="comments"></div>
         </div>`;
