@@ -391,9 +391,10 @@ async function addComment(feedId, parentId = null) {
 
     if (res.ok) {
         const data = await res.json();
-        document.getElementById(`comment-count-${feedId}`).innerText = `💬 ${data.comment_count}`;
+        document.getElementById(`comment-btn-${feedId}`).innerText = `💬 ${data.comment_count}`;
         commentFeed(feedId);
     }
+} // <-- 닫는 중괄호 추가
 // ✅ 초기 실행
 checkUser();
 loadFeeds('/feeds');
