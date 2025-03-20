@@ -88,10 +88,11 @@ async function checkUser() {
     if (res.ok) {
         const data = await res.json();
         
-        // ✅ `undefined` 방지: 기본값 추가
+        // ✅ 기본값 추가 (undefined 방지)
         const userName = data.name || "사용자";
         const profileImage = data.profile_image || "https://placehold.co/40x40";
 
+        // ✅ 프로필 이미지 + 이름 표시
         document.getElementById('user-info').innerHTML = `
             <img src="${profileImage}" style="width:30px; height:30px; border-radius:50%; margin-right:5px;">
             👤 ${userName}
@@ -113,39 +114,42 @@ function logout() {
 
 // ✅ 피드 목록 가져오기
 async function loadFeeds(endpoint) {
-  const headers = {};
-  if (endpoint === '/my-feeds') {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      alert('로그인이 필요합니다.');
-      return;
+    const headers = {};
+    if (endpoint === '/my-feeds') {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            alert('로그인이 필요합니다.');
+            return;
+        }
+        headers['Authorization'] = 'Bearer ' + token;
     }
-    headers['Authorization'] = 'Bearer ' + token;
-  }
 
-  const res = await fetch(`${api}${endpoint}`, { headers });
+    const res = await fetch(`${api}${endpoint}`, { headers });
 
-  if (!res.ok) {
-    alert('서버 오류: ' + res.status);
-    return;
-  }
+    if (!res.ok) {
+        alert('서버 오류: ' + res.status);
+        return;
+    }
 
-  const feeds = await res.json();
-  const feedsDiv = document.getElementById('feeds');
-  feedsDiv.innerHTML = '';
+    const feeds = await res.json();
+    const feedsDiv = document.getElementById('feeds');
+    feedsDiv.innerHTML = '';
 
-  feeds.forEach(feed => {
-    feedsDiv.innerHTML += `<div class="feed">
-      <div class="profile">
-        <img src="${feed.profile_image || 'https://placehold.co/40x40'}">
-        <strong>${feed.name}</strong>
-      </div>
-      <p>${feed.content || ''}</p>
-      ${feed.media_url ? (feed.media_url.includes('.mp4') ? `<video controls src="${feed.media_url}"></video>` : `<img src="${feed.media_url}">`) : ''}
-      <button onclick="likeFeed(${feed.id})">👍좋아요</button>
-      <button onclick="commentFeed(${feed.id})">💬댓글</button>
-    </div>`;
-  });
+    feeds.forEach(feed => {
+        // ✅ 프로필 이미지 기본값 추가
+        const profileImage = feed.profile_image || "https://placehold.co/40x40";
+
+        feedsDiv.innerHTML += `<div class="feed">
+            <div class="profile">
+                <img src="${profileImage}">
+                <strong>${feed.name}</strong>
+            </div>
+            <p>${feed.content || ''}</p>
+            ${feed.media_url ? (feed.media_url.includes('.mp4') ? `<video controls src="${feed.media_url}"></video>` : `<img src="${feed.media_url}">`) : ''}
+            <button onclick="likeFeed(${feed.id})">👍좋아요</button>
+            <button onclick="commentFeed(${feed.id})">💬댓글</button>
+        </div>`;
+    });
 }
 
 // ✅ 좋아요 기능 (추후 개발)
