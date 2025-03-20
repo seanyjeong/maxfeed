@@ -334,8 +334,7 @@ async function likeFeed(feedId) {
                 'Authorization': 'Bearer ' + token, 
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ feed_id: feedId }),
-            credentials: "include"  // ✅ CORS 문제 해결을 위해 추가
+            body: JSON.stringify({ feed_id: feedId })
         });
 
         if (!res.ok) {
@@ -359,6 +358,7 @@ async function likeFeed(feedId) {
         alert("좋아요 요청 중 오류 발생");
     }
 }
+
 
 
 /// ✅ 댓글 불러오기
