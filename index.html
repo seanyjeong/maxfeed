@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MaxFeed</title>
+  <link href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.min.css" rel="stylesheet">
+  <style>
+    .feed { border-bottom: 1px solid #ddd; padding: 15px 0; }
+    .profile { display: flex; align-items: center; margin-bottom: 5px; }
+    .profile img { width: 40px; height: 40px; border-radius: 50%; margin-right: 10px; }
+    .media img, video { max-height: 300px; width: 100%; object-fit: cover; border-radius: 8px; }
+    nav { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 2px solid #ddd; }
+    nav .buttons button { margin-left: 5px; }
+  </style>
+</head>
+<body>
+
+<!-- 🔥 네비게이션 바 -->
+<nav>
+  <h2>🔥 Max Feed 🔥</h2>
+  <div class="buttons">
+    <span id="user-info"></span>
+    <button id="login-btn" onclick="location.href='login.html'">로그인</button>
+    <button id="register-btn" onclick="location.href='register.html'">회원가입</button>
+    <button id="logout-btn" style="display: none;" onclick="logout()">로그아웃</button>
+  </div>
+</nav>
+
+<!-- 📝 피드 업로드 페이지 이동 -->
+<section>
+  <button onclick="location.href='upload.html'">✏️ 피드 작성</button>
+</section>
+
+<!-- 📌 피드 목록 -->
+<section>
+  <h3>📌 피드 목록</h3>
+  <button onclick="loadFeeds('/feeds')">전체 피드</button>
+  <button onclick="loadFeeds('/my-feeds')">내 피드</button>
+  <div id="feeds"></div>
+</section>
+
+<script>
+const api = 'https://supermax.kr/feed';
+
+// ✅ 로그인 상태 확인
+async function checkUser() {
+  const token = localStorage.getItem('token');
+  if (!token) return;
+
+  const res = await fetch(`${api}/user-info`, {
+    headers: { 'Authorization': 'Bearer ' + token }
+  });
+
+  if (res.ok) {
+    const data = await res.json();
+    document.getElementById('user-info').textContent = `👤 ${data.name}`;
+    document.getElementById('login-btn').style.display = 'none';
+    document.getElementById('register-btn').style.display = 'none';
+    document.getElementById('logout-btn').style.display = 'inline';
+  }
+}
+
+// ✅ 로그아웃 처리
+function logout() {
+  localStorage.removeItem('token');
+  location.reload();
+}
+
+// ✅ 피드 목록 가져오기
+async function loadFeeds(endpoint) {
+  const headers = {};
+  if (endpoint === '/my-feeds') {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+    headers['Authorization'] = 'Bearer ' + token;
+  }
+
+  const res = await fetch(`${api}${endpoint}`, { headers });
+
+  if (!res.ok) {
+    alert('서버 오류: ' + res.status);
+    return;
+  }
+
+  const feeds = await res.json();
+  const feedsDiv = document.getElementById('feeds');
+  feedsDiv.innerHTML = '';
+
+  feeds.forEach(feed => {
+    feedsDiv.innerHTML += `<div class="feed">
+      <div class="profile">
+        <img src="${feed.profile_image || 'https://placehold.co/40x40'}">
+        <strong>${feed.name}</strong>
+      </div>
+      <p>${feed.content || ''}</p>
+      ${feed.media_url ? (feed.media_url.includes('.mp4') ? `<video controls src="${feed.media_url}"></video>` : `<img src="${feed.media_url}">`) : ''}
+      <button onclick="likeFeed(${feed.id})">👍좋아요</button>
+      <button onclick="commentFeed(${feed.id})">💬댓글</button>
+    </div>`;
+  });
+}
+
+// ✅ 좋아요 기능 (추후 개발)
+async function likeFeed(feedId) { alert('좋아요 기능 준비 중'); }
+
+// ✅ 댓글 기능 (추후 개발)
+async function commentFeed(feedId) { alert('댓글 기능 준비 중'); }
+
+// ✅ 초기 실행
+checkUser();
+loadFeeds('/feeds');
+</script>
+
+</body>
+</html>
