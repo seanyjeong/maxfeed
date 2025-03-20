@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>내 정보 수정 - MaxFeed</title>
+  <link href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.min.css" rel="stylesheet">
+</head>
+<body>
+
+<h2>내 정보 수정</h2>
+<input type="password" id="new_password" placeholder="새 비밀번호">
+<input type="file" id="profile_image">
+<button onclick="updateProfile()">수정</button>
+<button onclick="location.href='index.html'">이전</button>
+
+<script>
+const api = 'https://supermax.kr/feed';
+
+async function updateProfile() {
+  const formData = new FormData();
+  formData.append('new_password', document.getElementById('new_password').value);
+  formData.append('profile_image', document.getElementById('profile_image').files[0]);
+
+  const res = await fetch(`${api}/update-profile`, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+    body: formData
+  });
+
+  if (res.ok) {
+    alert('수정 완료!');
+    location.href = 'index.html';
+  } else alert('수정 실패');
+}
+</script>
+
+</body>
+</html>
