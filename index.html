@@ -413,13 +413,11 @@ async function likeFeed(feedId) {
 async function commentFeed(feedId) {
     const commentsDiv = document.getElementById(`comments-${feedId}`);
 
-    // ✅ 댓글창이 이미 열려 있다면 닫기
     if (commentsDiv.innerHTML.trim() !== "") {
         commentsDiv.innerHTML = "";
         return;
     }
 
-    // ✅ 댓글 불러오기
     const res = await fetch(`${api}/comments/${feedId}`);
     if (!res.ok) {
         commentsDiv.innerHTML = "<p>❌ 댓글을 불러올 수 없습니다.</p>";
@@ -428,21 +426,25 @@ async function commentFeed(feedId) {
 
     const comments = await res.json();
 
-    // ✅ 댓글 목록 표시 + "답글" 버튼 추가
-    commentsDiv.innerHTML = comments.map(comment => `
-        <div class="comment" id="comment-${comment.id}">
-            <strong>${comment.name}</strong>: ${comment.content}
-            <button class="reply-btn" onclick="toggleReplyInput(${comment.id}, ${feedId})">↩️</button>
-            <div id="reply-input-${comment.id}" class="reply-input"></div>
-        </div>
-    `).join('');
+    let commentHTML = "";
+    comments.forEach(comment => {
+        commentHTML += `
+            <div class="comment" id="comment-${comment.id}" style="margin-left: ${comment.parent_id ? '20px' : '0'}">
+                <strong>${comment.name}</strong>: ${comment.content}
+                <button class="reply-btn" onclick="toggleReplyInput(${comment.id}, ${feedId})">↩️</button>
+                <div id="reply-input-${comment.id}" class="reply-input"></div>
+            </div>
+        `;
+    });
 
-    // ✅ 입력창 추가 (최상위 댓글용)
-    commentsDiv.innerHTML += `
+    commentHTML += `
         <input type="text" id="comment-input-${feedId}" placeholder="댓글 입력...">
         <button onclick="addComment(${feedId})">댓글 달기</button>
     `;
+
+    commentsDiv.innerHTML = commentHTML;
 }
+
 
 // ✅ 답글 입력창 토글 (대댓글 입력창을 클릭한 댓글 아래에 표시)
 function toggleReplyInput(commentId, feedId) {
