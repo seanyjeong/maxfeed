@@ -292,7 +292,46 @@ video {
 <script>
 const api = 'https://supermax.kr/feed';
 
+// ✅ 로그인 상태 확인 및 네비게이션 바 업데이트
+async function checkUser() {
+    const token = localStorage.getItem('token');
+    let userId = localStorage.getItem('user_id');  // ✅ user_id 가져오기
 
+    if (!token) return;
+
+    if (!userId) {
+        console.warn("⚠️ user_id가 LocalStorage에 없음! 서버에서 다시 가져옵니다.");
+        
+        // ✅ 서버에서 user_id 다시 가져오기
+        const res = await fetch(`${api}/user-info`, {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            userId = data.user_id;
+            localStorage.setItem('user_id', String(userId)); // 🔥 다시 저장
+            console.log("✅ 서버에서 받은 user_id:", userId);
+        }
+    }
+
+    console.log("🔹 최종 user_id:", userId);
+
+    const userName = localStorage.getItem('username') || "사용자";
+    const profileImage = localStorage.getItem('profile_image') || "https://placehold.co/40x40";
+
+    document.getElementById('user-info').innerHTML = `
+        <div class="profile-info">
+            <img src="${profileImage}">
+            <strong>${userName}</strong>
+        </div>
+    `;
+
+    document.getElementById('login-btn').style.display = 'none';
+    document.getElementById('register-btn').style.display = 'none';
+    document.getElementById('logout-btn').style.display = 'inline';
+    document.getElementById('profile-btn').style.display = 'inline';
+}
 
 async function login() {
     const username = document.getElementById('username').value;
@@ -336,46 +375,7 @@ console.log("🛠 페이지 로드됨 - LocalStorage 확인");
 console.log("🔹 현재 저장된 token:", localStorage.getItem('token'));
 console.log("🔹 현재 저장된 user_id:", localStorage.getItem('user_id'));
 
-// ✅ 로그인 상태 확인 및 네비게이션 바 업데이트
-async function checkUser() {
-    const token = localStorage.getItem('token');
-    let userId = localStorage.getItem('user_id');  // ✅ user_id 가져오기
 
-    if (!token) return;
-
-    if (!userId) {
-        console.warn("⚠️ user_id가 LocalStorage에 없음! 서버에서 다시 가져옵니다.");
-        
-        // ✅ 서버에서 user_id 다시 가져오기
-        const res = await fetch(`${api}/user-info`, {
-            headers: { 'Authorization': 'Bearer ' + token }
-        });
-
-        if (res.ok) {
-            const data = await res.json();
-            userId = data.user_id;
-            localStorage.setItem('user_id', String(userId)); // 🔥 다시 저장
-            console.log("✅ 서버에서 받은 user_id:", userId);
-        }
-    }
-
-    console.log("🔹 최종 user_id:", userId);
-
-    const userName = localStorage.getItem('username') || "사용자";
-    const profileImage = localStorage.getItem('profile_image') || "https://placehold.co/40x40";
-
-    document.getElementById('user-info').innerHTML = `
-        <div class="profile-info">
-            <img src="${profileImage}">
-            <strong>${userName}</strong>
-        </div>
-    `;
-
-    document.getElementById('login-btn').style.display = 'none';
-    document.getElementById('register-btn').style.display = 'none';
-    document.getElementById('logout-btn').style.display = 'inline';
-    document.getElementById('profile-btn').style.display = 'inline';
-}
 
 
 // ✅ 로그아웃 처리
