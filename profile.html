@@ -19,16 +19,16 @@
 <label>전화번호</label>
 <input type="text" id="phone" placeholder="전화번호">
 
-<!-- 생일 수정 -->
+<!-- 생년월일 수정 -->
 <label>생년월일</label>
 <input type="date" id="birth_date">
 
 <!-- 비밀번호 변경 -->
 <label>현재 비밀번호</label>
-<input type="password" id="current_password" placeholder="현재 비밀번호">
+<input type="password" id="current_password" placeholder="현재 비밀번호 (변경 시 입력)">
 
 <label>새 비밀번호</label>
-<input type="password" id="new_password" placeholder="새 비밀번호">
+<input type="password" id="new_password" placeholder="새 비밀번호 (변경할 경우만 입력)">
 
 <label>새 비밀번호 확인</label>
 <input type="password" id="confirm_password" placeholder="새 비밀번호 확인">
@@ -39,14 +39,22 @@
 <script>
 const api = 'https://supermax.kr/feed';
 
-// ✅ 현재 프로필 이미지 가져오기
+// ✅ 현재 프로필 및 정보 가져오기
 async function loadProfile() {
     const res = await fetch(`${api}/user-info`, {
         headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
     });
+    
+    if (!res.ok) {
+        alert("사용자 정보를 불러올 수 없습니다!");
+        return;
+    }
+
     const data = await res.json();
     if (data.success) {
         document.getElementById('profile_img').src = data.profile_image || "https://placehold.co/100x100";
+        document.getElementById('phone').value = data.phone || ''; // ✅ 전화번호 자동 입력
+        document.getElementById('birth_date').value = data.birth_date || ''; // ✅ 생년월일 자동 입력
     }
 }
 
@@ -82,7 +90,7 @@ async function updateProfile() {
     if (res.ok) {
         alert('수정 완료!');
         if (data.profile_url) {
-            document.getElementById('profile_img').src = data.profile_url; // ✅ **프로필 이미지 갱신**
+            document.getElementById('profile_img').src = data.profile_url; // ✅ 프로필 이미지 갱신
         }
         location.href = 'index.html';
     } else {
@@ -91,7 +99,8 @@ async function updateProfile() {
     }
 }
 
-loadProfile(); // ✅ **페이지 로드 시 프로필 이미지 불러오기**
+// ✅ 페이지 로드 시 기존 정보 불러오기
+loadProfile();
 </script>
 
 </body>
