@@ -80,6 +80,7 @@
 
 <script>
 const api = 'https://supermax.kr/feed'; // ✅ feed로 변경
+let isPhoneVerified = false; // ✅ 인증 완료 여부 확인 변수
 
 async function sendVerification() {
   const phone = document.getElementById('phone').value;
@@ -97,6 +98,7 @@ async function sendVerification() {
   const data = await res.json();
   if (res.ok) {
     alert("인증번호가 전송되었습니다.");
+    document.getElementById('verification_section').style.display = "flex"; // ✅ 인증번호 입력란 표시
   } else {
     alert("SMS 전송 실패: " + (data.error || "서버 오류"));
   }
@@ -120,12 +122,21 @@ async function verifyCode() {
   const data = await res.json();
   if (res.ok) {
     alert("인증 완료!");
+    isPhoneVerified = true; // ✅ 인증 성공 상태 저장
+    document.getElementById('verification_section').style.display = "none"; // ✅ 인증번호 입력란 숨김
+    document.getElementById('phone').readOnly = true; // ✅ 전화번호 수정 불가 처리
+    document.getElementById('send_verification_btn').disabled = true; // ✅ 인증번호 다시 받기 버튼 비활성화
   } else {
     alert("인증번호가 올바르지 않습니다.");
   }
 }
 
 async function register() {
+  if (!isPhoneVerified) {
+    alert("전화번호 인증을 완료하세요!");
+    return;
+  }
+
   const user = {
     username: document.getElementById('username').value.trim(),
     password: document.getElementById('password').value.trim(),
