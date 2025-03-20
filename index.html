@@ -295,6 +295,8 @@ const api = 'https://supermax.kr/feed';
 // ✅ 로그인 상태 확인 및 네비게이션 바 업데이트
 async function checkUser() {
     const token = localStorage.getItem('token');
+    const userId = localStorage.getItem('user_id');  // ✅ user_id 가져오기
+
     if (!token) return;
 
     const res = await fetch(`${api}/user-info`, {
@@ -303,12 +305,15 @@ async function checkUser() {
 
     if (res.ok) {
         const data = await res.json();
-        
-        // ✅ 기본값 추가 (undefined 방지)
+
+        // ✅ user_id가 없으면, localStorage에 저장
+        if (!userId) {
+            localStorage.setItem('user_id', data.user_id);
+        }
+
         const userName = data.name || "사용자";
         const profileImage = data.profile_image || "https://placehold.co/40x40";
 
-        // ✅ 프로필 정보 업데이트 (정렬 유지)
         document.getElementById('user-info').innerHTML = `
             <div class="profile-info">
                 <img src="${profileImage}">
@@ -322,6 +327,7 @@ async function checkUser() {
         document.getElementById('profile-btn').style.display = 'inline';
     }
 }
+
 async function login() {
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
@@ -454,7 +460,6 @@ async function likeFeed(feedId) {
 /// ✅ 댓글 불러오기
 async function commentFeed(feedId) {
     const commentsDiv = document.getElementById(`comments-${feedId}`);
-
     if (commentsDiv.innerHTML.trim() !== "") {
         commentsDiv.innerHTML = "";
         return;
@@ -467,16 +472,13 @@ async function commentFeed(feedId) {
     }
 
     const comments = await res.json();
-    const userId = localStorage.getItem('user_id'); // 🔥 로그인한 사용자 ID
+    const userId = localStorage.getItem('user_id');  // ✅ 로그인한 사용자 ID
 
     let commentHTML = "";
     comments.forEach(comment => {
         const isReply = comment.parent_id ? "ㄴ" : ""; // 🔥 대댓글이면 "ㄴ" 표시
         const marginLeft = comment.parent_id ? '20px' : '0'; // 🔥 대댓글 들여쓰기
-const deleteButton = (userId && parseInt(userId) === parseInt(comment.user_id)) 
-    ? `<button class="delete-btn" onclick="deleteComment(${comment.id}, ${feedId})">❌</button>` 
-    : "";
-
+        const deleteButton = (userId && userId == comment.user_id) ? `<button class="delete-btn" onclick="deleteComment(${comment.id}, ${feedId})">❌</button>` : ""; // ✅ 내가 쓴 댓글만 삭제 버튼 표시
 
         commentHTML += `
             <div class="comment" id="comment-${comment.id}" style="margin-left: ${marginLeft}">
