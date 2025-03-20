@@ -183,6 +183,34 @@ video {
   font-size: 1rem;
 }
 
+    .comment {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px;
+  border-bottom: 1px solid #ddd;
+}
+
+.reply-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: blue;
+  margin-left: 10px;
+}
+
+.reply-input {
+  margin-left: 20px;
+  margin-top: 5px;
+}
+
+.reply-input input {
+  width: 80%;
+  padding: 5px;
+}
+
+
 
 /* ✅ 모바일 화면 대응 */
 @media screen and (max-width: 480px) {
@@ -384,11 +412,14 @@ async function likeFeed(feedId) {
 /// ✅ 댓글 불러오기
 async function commentFeed(feedId) {
     const commentsDiv = document.getElementById(`comments-${feedId}`);
+
+    // ✅ 댓글창이 이미 열려 있다면 닫기
     if (commentsDiv.innerHTML.trim() !== "") {
         commentsDiv.innerHTML = "";
         return;
     }
 
+    // ✅ 댓글 불러오기
     const res = await fetch(`${api}/comments/${feedId}`);
     if (!res.ok) {
         commentsDiv.innerHTML = "<p>❌ 댓글을 불러올 수 없습니다.</p>";
@@ -396,20 +427,41 @@ async function commentFeed(feedId) {
     }
 
     const comments = await res.json();
+
+    // ✅ 댓글 목록 표시 + "답글" 버튼 추가
     commentsDiv.innerHTML = comments.map(comment => `
-        <div class="comment">
+        <div class="comment" id="comment-${comment.id}">
             <strong>${comment.name}</strong>: ${comment.content}
-            <button onclick="replyTo(${comment.id}, ${feedId})">↩️ 답글</button>
+            <button class="reply-btn" onclick="toggleReplyInput(${comment.id}, ${feedId})">↩️</button>
+            <div id="reply-input-${comment.id}" class="reply-input"></div>
         </div>
     `).join('');
 
+    // ✅ 입력창 추가 (최상위 댓글용)
     commentsDiv.innerHTML += `
         <input type="text" id="comment-input-${feedId}" placeholder="댓글 입력...">
         <button onclick="addComment(${feedId})">댓글 달기</button>
     `;
 }
 
+// ✅ 답글 입력창 토글 (대댓글 입력창을 클릭한 댓글 아래에 표시)
+function toggleReplyInput(commentId, feedId) {
+    const replyInputDiv = document.getElementById(`reply-input-${commentId}`);
+
+    // ✅ 입력창이 이미 있으면 삭제 (토글 기능)
+    if (replyInputDiv.innerHTML.trim() !== "") {
+        replyInputDiv.innerHTML = "";
+        return;
+    }
+
+    // ✅ 대댓글 입력창 생성
+    replyInputDiv.innerHTML = `
+        <input type="text" id="reply-input-field-${commentId}" placeholder="답글 입력...">
+        <button onclick="addComment(${feedId}, ${commentId})">답글 작성</button>
+    `;
+}
 // ✅ 댓글 추가 후 카운트 업데이트
+// ✅ 댓글 추가 API 요청
 async function addComment(feedId, parentId = null) {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -417,7 +469,8 @@ async function addComment(feedId, parentId = null) {
         return;
     }
 
-    const content = document.getElementById(`comment-input-${feedId}`).value;
+    const inputId = parentId ? `reply-input-field-${parentId}` : `comment-input-${feedId}`;
+    const content = document.getElementById(inputId).value;
     if (!content) {
         alert("내용을 입력하세요.");
         return;
@@ -431,10 +484,10 @@ async function addComment(feedId, parentId = null) {
 
     if (res.ok) {
         const data = await res.json();
-        document.getElementById(`comment-btn-${feedId}`).innerText = `💬 ${data.comment_count}`;
-        commentFeed(feedId);
+        document.getElementById(`comment-count-${feedId}`).innerText = data.comment_count;
+        commentFeed(feedId);  // ✅ 다시 댓글 불러오기 (UI 업데이트)
     }
-} // <-- 닫는 중괄호 추가
+}
 
   // ✅ 대댓글 추가
 async function replyTo(commentId, feedId) {
