@@ -305,14 +305,65 @@ async function loadFeeds(endpoint) {
         </div>`;
     });
 }
+// ✅ 좋아요 기능
+async function likeFeed(feedId) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        alert("로그인이 필요합니다.");
+        return;
+    }
 
+    const res = await fetch(`${api}/like`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feed_id: feedId })
+    });
 
+    const data = await res.json();
+    alert(data.liked ? "좋아요 추가됨!" : "좋아요 취소됨!");
+}
 
-// ✅ 좋아요 기능 (추후 개발)
-async function likeFeed(feedId) { alert('좋아요 기능 준비 중'); }
+// ✅ 댓글 표시
+async function showComments(feedId) {
+    const res = await fetch(`${api}/comments/${feedId}`);
+    const comments = await res.json();
+    const commentsDiv = document.getElementById(`comments-${feedId}`);
+    commentsDiv.innerHTML = comments.map(comment => `
+        <div class="comment">
+            <strong>${comment.name}</strong>: ${comment.content}
+            <button onclick="replyTo(${comment.id}, ${feedId})">↩️ 답글</button>
+        </div>
+    `).join('');
 
-// ✅ 댓글 기능 (추후 개발)
-async function commentFeed(feedId) { alert('댓글 기능 준비 중'); }
+    commentsDiv.innerHTML += `
+        <input type="text" id="comment-input-${feedId}" placeholder="댓글 입력...">
+        <button onclick="addComment(${feedId})">댓글 달기</button>
+    `;
+}
+
+// ✅ 댓글 추가
+async function addComment(feedId, parentId = null) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        alert("로그인이 필요합니다.");
+        return;
+    }
+
+    const content = document.getElementById(`comment-input-${feedId}`).value;
+    if (!content) {
+        alert("내용을 입력하세요.");
+        return;
+    }
+
+    await fetch(`${api}/add-comment`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feed_id: feedId, content, parent_id: parentId })
+    });
+
+    showComments(feedId);
+}
+
 
 // ✅ 초기 실행
 checkUser();
