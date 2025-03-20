@@ -9,8 +9,29 @@
 <body>
 
 <h2>내 정보 수정</h2>
-<input type="password" id="new_password" placeholder="새 비밀번호">
+
+<!-- 프로필 이미지 -->
+<label>프로필 이미지</label>
 <input type="file" id="profile_image">
+
+<!-- 전화번호 수정 -->
+<label>전화번호</label>
+<input type="text" id="phone" placeholder="전화번호">
+
+<!-- 생일 수정 -->
+<label>생년월일</label>
+<input type="date" id="birth_date">
+
+<!-- 비밀번호 변경 -->
+<label>현재 비밀번호</label>
+<input type="password" id="current_password" placeholder="현재 비밀번호">
+
+<label>새 비밀번호</label>
+<input type="password" id="new_password" placeholder="새 비밀번호">
+
+<label>새 비밀번호 확인</label>
+<input type="password" id="confirm_password" placeholder="새 비밀번호 확인">
+
 <button onclick="updateProfile()">수정</button>
 <button onclick="location.href='index.html'">이전</button>
 
@@ -18,20 +39,43 @@
 const api = 'https://supermax.kr/feed';
 
 async function updateProfile() {
-  const formData = new FormData();
-  formData.append('new_password', document.getElementById('new_password').value);
-  formData.append('profile_image', document.getElementById('profile_image').files[0]);
+    const formData = new FormData();
+    const fileInput = document.getElementById('profile_image');
+    const phone = document.getElementById('phone').value;
+    const birth_date = document.getElementById('birth_date').value;
+    const current_password = document.getElementById('current_password').value;
+    const new_password = document.getElementById('new_password').value;
+    const confirm_password = document.getElementById('confirm_password').value;
 
-  const res = await fetch(`${api}/update-profile`, {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
-    body: formData
-  });
+    if (fileInput.files.length) {
+        formData.append('profile_image', fileInput.files[0]);
+    }
+    if (phone) formData.append('phone', phone);
+    if (birth_date) formData.append('birth_date', birth_date);
+    if (current_password) formData.append('current_password', current_password);
+    if (new_password) formData.append('new_password', new_password);
+    if (confirm_password) formData.append('confirm_password', confirm_password);
 
-  if (res.ok) {
-    alert('수정 완료!');
-    location.href = 'index.html';
-  } else alert('수정 실패');
+    // 🔥 새 비밀번호 확인 (두 번 입력이 다르면 중단)
+    if (new_password && new_password !== confirm_password) {
+        alert("새 비밀번호가 일치하지 않습니다!");
+        return;
+    }
+
+    const res = await fetch(`${api}/update-profile`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+        body: formData
+    });
+
+    if (res.ok) {
+        alert('수정 완료!');
+        location.href = 'index.html';
+    } else {
+        const errorData = await res.json();
+        console.error("🔥 서버 응답 오류:", errorData);
+        alert('수정 실패: ' + (errorData.error || '알 수 없는 오류'));
+    }
 }
 </script>
 
