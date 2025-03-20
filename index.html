@@ -316,22 +316,24 @@ async function login() {
 
         if (data.user_id !== undefined && data.user_id !== null) {  
             localStorage.setItem('token', data.token);
-            localStorage.setItem('user_id', String(data.user_id));
+            localStorage.setItem('user_id', String(data.user_id));  // ✅ user_id 저장
+            console.log("🚀 `user_id` 저장 시도:", data.user_id);
 
-            // ✅ 100ms 뒤에 저장된 값 확인 (Chrome 버그 방지)
+            // ✅ 저장 후 100ms 뒤에 다시 확인 (Chrome 버그 방지)
             setTimeout(() => {
-                console.log("✅ 저장 후 LocalStorage user_id:", localStorage.getItem("user_id"));
+                const savedUserId = localStorage.getItem("user_id");
+                console.log("✅ 저장 후 확인 user_id:", savedUserId);
 
-                // ✅ 저장이 정상적으로 되었으면 checkUser 실행
-                if (localStorage.getItem("user_id")) {
-                    checkUser(); // ✅ 네비게이션 업데이트
-                    location.href = 'index.html'; // ✅ 페이지 이동
+                if (savedUserId && savedUserId !== "undefined") {
+                    console.log("✅ `user_id` 저장 성공!");
+                    checkUser();  // ✅ 네비게이션 업데이트
+                    location.href = 'index.html';  // ✅ 페이지 이동
                 } else {
-                    console.error("❌ user_id 저장 오류! LocalStorage에 없음.");
+                    console.error("❌ `user_id` 저장 실패! LocalStorage 확인 필요");
                 }
             }, 100);
         } else {
-            console.error("❌ 서버 응답에 user_id가 없음:", data);
+            console.error("❌ 서버 응답에 user_id 없음:", data);
             alert("로그인 실패: user_id가 없습니다.");
         }
     } else {
@@ -339,6 +341,7 @@ async function login() {
         alert("로그인 실패");
     }
 }
+
 
 
 
@@ -364,13 +367,14 @@ async function checkUser() {
         if (res.ok) {
             const data = await res.json();
 
-            // ✅ user_id가 `null`, `"null"`, `"undefined"`이면 덮어쓰기
+            // ✅ user_id가 `undefined`, `"null"`, `"undefined"`이면 덮어쓰기
             if (!userId || userId === "null" || userId === "undefined") {
+                console.log("⚠️ `user_id`가 이상함, 서버 데이터로 덮어쓰기:", data.user_id);
                 localStorage.setItem('user_id', String(data.user_id));
                 userId = localStorage.getItem('user_id'); // 다시 가져오기
             }
 
-            console.log("✅ user_id:", userId);
+            console.log("✅ 최종 확인 user_id:", userId);
 
             // ✅ 네비게이션 UI 업데이트
             const userName = data.name || "사용자";
@@ -394,7 +398,6 @@ async function checkUser() {
         console.error("❌ checkUser() 오류:", error);
     }
 }
-
 
 
 
