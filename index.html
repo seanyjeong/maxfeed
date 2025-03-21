@@ -636,9 +636,10 @@ async function loadFeeds(endpoint) {
             if (Array.isArray(mediaArray) && mediaArray.length > 0) {
                 const slides = mediaArray.map(url => {
                     return `<div class="swiper-slide">
-                        ${url.includes('.mp4')
-                            ? `<video controls src="${url}"></video>`
-                            : `<img src="${url}">`}
+${url.includes('.mp4')
+    ? `<video class="feed-video" controls muted src="${url}"></video>`
+    : `<img src="${url}">`}
+
                     </div>`;
                 }).join('');
 
@@ -1101,6 +1102,8 @@ document.addEventListener("change", (e) => {
 
 
 
+
+
   // ✅ 대댓글 추가
 async function replyTo(commentId, feedId) {
     const replyContent = prompt("답글을 입력하세요:");
@@ -1120,6 +1123,127 @@ async function replyTo(commentId, feedId) {
 
     commentFeed(feedId);
 }
+
+async function setupVideoObservers() {
+  const videos = document.querySelectorAll('.feed-video');
+
+  if (window.videoObserver) window.videoObserver.disconnect();
+
+  window.videoObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const video = entry.target;
+
+      if (entry.isIntersecting) {
+        video.play().catch(err => {
+          if (err.name !== 'AbortError') {
+            console.error('⚠️ 비디오 재생 중 에러:', err);
+          }
+        });
+      } else {
+        video.pause();
+      }
+    });
+  }, { threshold: 0.5 });
+
+  videos.forEach(video => window.videoObserver.observe(video));
+}
+
+
+
+// ✅ 피드 로딩 완료 시 Observer 초기화
+async function loadFeeds(endpoint) {
+  document.getElementById('feeds-title').innerText = "📌 피드 목록"; 
+
+  const headers = {};
+  if (endpoint === '/my-feeds') {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+    headers['Authorization'] = 'Bearer ' + token;
+  }
+
+  const res = await fetch(`${api}${endpoint}`, { headers });
+
+  if (!res.ok) {
+    alert('서버 오류: ' + res.status);
+    return;
+  }
+
+  const feeds = await res.json();
+  const feedsDiv = document.getElementById('feeds');
+  feedsDiv.innerHTML = '';
+
+  feeds.forEach(feed => {
+    const profileImage = feed.profile_image || "https://placehold.co/40x40";
+    const likedClass = feed.liked ? "liked" : "";
+    const likeCount = feed.like_count || 0;
+    const commentCount = feed.comment_count || 0;
+    const isMyFeed = localStorage.getItem('user_id') == feed.user_id;
+
+    let mediaHTML = '';
+    try {
+      const mediaArray = JSON.parse(feed.media_url);
+      if (Array.isArray(mediaArray) && mediaArray.length > 0) {
+        const slides = mediaArray.map(url => {
+          return `<div class="swiper-slide">
+            ${url.includes('.mp4')
+              ? `<video class="feed-video" controls muted src="${url}"></video>`
+              : `<img src="${url}">`}
+          </div>`;
+        }).join('');
+
+        const swiperId = `swiper-${feed.id}`;
+        mediaHTML = `
+          <div class="swiper" id="${swiperId}">
+            <div class="swiper-wrapper">${slides}</div>
+            <div class="swiper-pagination"></div>
+            <div class="swiper-button-prev"></div>
+            <div class="swiper-button-next"></div>
+          </div>
+        `;
+
+        setTimeout(() => {
+          new Swiper(`#${swiperId}`, {
+            loop: true,
+            pagination: { el: `#${swiperId} .swiper-pagination` },
+            navigation: {
+              nextEl: `#${swiperId} .swiper-button-next`,
+              prevEl: `#${swiperId} .swiper-button-prev`,
+            },
+          });
+        }, 0);
+      }
+    } catch (e) {
+      if (feed.media_url) {
+        mediaHTML = feed.media_url.includes('.mp4')
+          ? `<video class="feed-video" controls muted src="${feed.media_url}"></video>`
+          : `<img src="${feed.media_url}">`;
+      }
+    }
+
+    feedsDiv.innerHTML += `<div class="feed">
+      <div class="profile">
+        <img src="${profileImage}">
+        <strong class="clickable-username" onclick="loadUserFeeds(${feed.user_id}, '${feed.name.replace(/'/g, "\\'")}')">${feed.name}</strong>
+      </div>
+      <p>${feed.content || ''}</p>
+      ${mediaHTML}
+      <div class="actions">
+        <button class="like-btn ${likedClass}" id="like-btn-${feed.id}" onclick="likeFeed(${feed.id})">❤️ ${likeCount}</button>
+        <button id="comment-btn-${feed.id}" onclick="commentFeed(${feed.id})" class="icon-btn">
+          <span>💬</span> <span id="comment-count-${feed.id}">${commentCount}</span>
+        </button>
+        ${isMyFeed ? `<button class="icon-btn" onclick="deleteFeed(${feed.id})">🗑️</button>` : ""}
+      </div>
+      <div id="comments-${feed.id}" class="comments"></div>
+    </div>`;
+  });
+
+  await setupVideoObservers(); // 비디오 Observer 초기화 추가
+}
+
 // ✅ 초기 실행
 checkUser();
 loadFeeds('/feeds');
