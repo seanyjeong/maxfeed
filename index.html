@@ -87,6 +87,15 @@ nav .right-buttons {
     margin-top: 10px;
   }
 }
+.feed {
+  border-left: 4px solid #c5360b; /* 왼쪽 포인트 라인 */
+}
+.comment {
+  background: #f2f4f8;
+  border-radius: 8px;
+  padding: 10px;
+}
+
 
 /* 🔥 피드 관련 버튼을 한 줄에 정렬 */
 .feed-buttons {
@@ -226,6 +235,13 @@ video {
   padding: 5px;
 }
 
+/* 스타일도 좀 주고 */
+.clickable-username {
+  cursor: pointer;
+  color: #007bff;
+  text-decoration: underline;
+}
+
 
 
 /* ✅ 모바일 화면 대응 */
@@ -272,6 +288,45 @@ video {
   border-radius: 8px;
 }
 
+.emoji-picker {
+  display: none;
+  position: absolute;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 5px;
+  box-shadow: 0px 3px 6px rgba(0,0,0,0.1);
+  z-index: 9999;
+}
+.emoji-picker button {
+  font-size: 20px;
+  margin: 3px;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.feed-grid-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .feed-grid-item {
+    width: 100%;
+    aspect-ratio: 1/1;
+    overflow: hidden;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .feed-grid-item img,
+  .feed-grid-item video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+
 
 
 
@@ -317,9 +372,10 @@ video {
 
 <!-- 📌 피드 목록 -->
 <section>
-  <h3>📌 피드 목록</h3>
+  <h3 id="feeds-title">📌 피드 목록</h3>
   <div id="feeds"></div>
 </section>
+
 
 
 
@@ -361,6 +417,45 @@ function showToast(msg) {
 }
 
 init(); // ✅ 초기 실행
+
+const emojiList = ['😂', '😍', '🔥', '👍', '🥲', '💯', '🎉', '👏', '😎', '🫶'];
+
+// ✅ 이모지 선택창 토글 함수
+function toggleEmojiPicker(targetInputId) {
+  const pickerId = `emoji-picker-${targetInputId}`;
+  let picker = document.getElementById(pickerId);
+
+  // 없으면 새로 만들어서 붙이기
+  if (!picker) {
+    picker = document.createElement('div');
+    picker.id = pickerId;
+    picker.className = 'emoji-picker';
+    document.body.appendChild(picker);
+  }
+
+  // 이모지 버튼 렌더링
+  picker.innerHTML = emojiList.map(emoji =>
+    `<button onclick="insertEmoji('${targetInputId}', '${emoji}')">${emoji}</button>`
+  ).join('');
+
+  // 위치 설정 (입력창 아래로)
+  const input = document.getElementById(targetInputId);
+  const rect = input.getBoundingClientRect();
+  picker.style.position = 'absolute';
+  picker.style.left = `${rect.left + window.scrollX}px`;
+  picker.style.top = `${rect.bottom + window.scrollY + 5}px`;
+  picker.style.display = picker.style.display === 'block' ? 'none' : 'block';
+}
+
+// ✅ 이모지를 input에 삽입
+function insertEmoji(inputId, emoji) {
+  const input = document.getElementById(inputId);
+  if (input) {
+    input.value += emoji;
+    document.getElementById(`emoji-picker-${inputId}`).style.display = 'none';
+  }
+}
+
 
 
 async function login() {
@@ -487,6 +582,8 @@ function logout() {
 // ✅ 피드 목록 가져오기 (좋아요/댓글 개수 포함, 멀티 미디어 대응)
 // ✅ 피드 목록 가져오기 (슬라이드 + 좋아요 + 댓글 + 삭제 포함)
 async function loadFeeds(endpoint) {
+    document.getElementById('feeds-title').innerText = "📌 피드 목록"; // ✅ 제목 초기화
+
     const headers = {};
     if (endpoint === '/my-feeds') {
         const token = localStorage.getItem('token');
@@ -564,7 +661,8 @@ async function loadFeeds(endpoint) {
         feedsDiv.innerHTML += `<div class="feed">
             <div class="profile">
                 <img src="${profileImage}">
-                <strong>${feed.name}</strong>
+  <strong class="clickable-username" onclick="loadUserFeeds(${feed.user_id}, '${feed.name.replace(/'/g, "\\'")}')">${feed.name}</strong>
+
             </div>
             <p>${feed.content || ''}</p>
             ${mediaHTML}
@@ -610,6 +708,90 @@ async function deleteFeed(feedId) {
         alert("❌ 삭제 실패: " + err.error);
     }
 }
+
+// 해당 유저 피드만 불러오는 함수
+async function loadUserFeeds(userId, userName) {
+  document.getElementById('feeds-title').innerText = `👤 ${userName}님의 피드`;
+
+  const res = await fetch(`${api}/user-feeds/${userId}`);
+  if (!res.ok) {
+    alert("해당 유저 피드를 불러올 수 없습니다.");
+    return;
+  }
+
+  const feeds = await res.json();
+  const feedsDiv = document.getElementById('feeds');
+  feedsDiv.innerHTML = '';
+
+  // 기존 loadFeeds와 동일하게 렌더링 반복
+  feeds.forEach(feed => {
+    const profileImage = feed.profile_image || "https://placehold.co/40x40";
+    const likeCount = feed.like_count || 0;
+    const commentCount = feed.comment_count || 0;
+    const isMyFeed = localStorage.getItem('user_id') == feed.user_id;
+
+    let mediaHTML = '';
+    try {
+      const mediaArray = JSON.parse(feed.media_url);
+      if (Array.isArray(mediaArray) && mediaArray.length > 0) {
+        const slides = mediaArray.map(url => {
+          return `<div class="swiper-slide">
+            ${url.includes('.mp4') ? `<video controls src="${url}"></video>` : `<img src="${url}">`}
+          </div>`;
+        }).join('');
+
+        const swiperId = `swiper-${feed.id}`;
+        mediaHTML = `
+          <div class="swiper" id="${swiperId}">
+            <div class="swiper-wrapper">${slides}</div>
+            <div class="swiper-pagination"></div>
+            <div class="swiper-button-prev"></div>
+            <div class="swiper-button-next"></div>
+          </div>
+        `;
+
+        setTimeout(() => {
+          new Swiper(`#${swiperId}`, {
+            loop: true,
+            pagination: { el: `#${swiperId} .swiper-pagination` },
+            navigation: {
+              nextEl: `#${swiperId} .swiper-button-next`,
+              prevEl: `#${swiperId} .swiper-button-prev`,
+            },
+          });
+        }, 0);
+      }
+    } catch (e) {
+      if (feed.media_url) {
+        mediaHTML = feed.media_url.includes('.mp4')
+          ? `<video controls src="${feed.media_url}"></video>`
+          : `<img src="${feed.media_url}">`;
+      }
+    }
+
+    feedsDiv.innerHTML += `
+      <div class="feed">
+        <div class="profile">
+          <img src="${profileImage}">
+          <strong class="clickable-username" onclick="loadUserFeeds(${feed.user_id}, '${feed.name}')">${feed.name}</strong>
+
+        </div>
+        <p>${feed.content || ''}</p>
+        ${mediaHTML}
+        <div class="actions">
+          <button class="like-btn" onclick="likeFeed(${feed.id})">❤️ ${likeCount}</button>
+          <button class="icon-btn" onclick="commentFeed(${feed.id})">
+            💬 <span id="comment-count-${feed.id}">${commentCount}</span>
+          </button>
+          ${isMyFeed ? `<button class="icon-btn" onclick="deleteFeed(${feed.id})">🗑️</button>` : ""}
+        </div>
+        <div id="comments-${feed.id}" class="comments"></div>
+      </div>
+    `;
+  });
+}
+
+
 
 
 function showToast(msg) {
@@ -676,7 +858,7 @@ async function likeFeed(feedId) {
 
 
 
-/// ✅ 댓글 불러오기
+// ✅ 댓글 불러오기
 async function commentFeed(feedId) {
     const commentsDiv = document.getElementById(`comments-${feedId}`);
     if (commentsDiv.innerHTML.trim() !== "") {
@@ -691,47 +873,55 @@ async function commentFeed(feedId) {
     }
 
     const comments = await res.json();
-    const userId = localStorage.getItem('user_id');  // ✅ 로그인한 사용자 ID
+    const userId = localStorage.getItem('user_id');
 
     let commentHTML = "";
-comments.forEach(comment => {
-    const isReply = comment.parent_id ? "ㄴ" : "";
-    const deleteButton = (userId && userId == comment.user_id) ? `<button class="delete-btn" onclick="deleteComment(${comment.id}, ${feedId})">❌</button>` : "";
 
-    commentHTML += `
-        <div class="comment" id="comment-${comment.id}">
-            <strong>${isReply} ${comment.name}</strong>: ${comment.content}
-            ${deleteButton}
-            <button class="reply-btn" onclick="toggleReplyInput(${comment.id}, ${feedId})">↩️</button>
-        </div>
-    `;
+    comments.forEach(comment => {
+        const isReply = comment.parent_id ? "ㄴ" : "";
+        const deleteButton = (userId && userId == comment.user_id)
+            ? `<button class="delete-btn" onclick="deleteComment(${comment.id}, ${feedId})">❌</button>`
+            : "";
 
-    // ✅ 댓글에 media_url 있는 경우: 이미지나 영상 추가
-    if (comment.media_url) {
         commentHTML += `
-            <div style="margin-left: 20px; margin-top: 5px;">
-                ${comment.media_url.includes('.mp4')
-                    ? `<video controls src="${comment.media_url}" style="max-width: 300px;"></video>`
-                    : `<img src="${comment.media_url}" style="max-width: 300px;">`}
+            <div class="comment" id="comment-${comment.id}">
+                <strong>${isReply} ${comment.name}</strong>: ${comment.content}
+                ${deleteButton}
+                <button class="reply-btn" onclick="toggleReplyInput(${comment.id}, ${feedId})">↩️</button>
             </div>
         `;
-    }
 
-    // ✅ 대댓글 입력창 자리
-    commentHTML += `<div id="reply-container-${comment.id}" class="reply-container"></div>`;
-});
+        // ✅ 댓글에 미디어가 있을 경우 표시
+        if (comment.media_url) {
+            commentHTML += `
+                <div style="margin-left: 20px; margin-top: 5px;">
+                    ${comment.media_url.includes('.mp4')
+                        ? `<video controls src="${comment.media_url}" style="max-width: 300px;"></video>`
+                        : `<img src="${comment.media_url}" style="max-width: 300px;">`}
+                </div>
+            `;
+        }
 
+        // ✅ 대댓글 입력창 자리
+        commentHTML += `<div id="reply-container-${comment.id}" class="reply-container"></div>`;
+    });
 
-
-commentHTML += `
-    <input type="text" id="comment-input-${feedId}" placeholder="댓글 입력...">
-    <input type="file" id="comment-media-${feedId}"> <!-- ✅ 파일 입력창 추가 -->
-    <button onclick="addComment(${feedId})">댓글 달기</button>
-`;
-
+    // ✅ 메인 댓글 입력창 (파일첨부 포함)
+    commentHTML += `
+        <div style="display: flex; align-items: center; gap: 5px; margin-top: 5px;">
+            <input type="text" id="comment-input-${feedId}" placeholder="댓글 입력..." style="flex: 1;">
+            <label for="comment-file-${feedId}" style="cursor: pointer;">📷</label>
+            <input type="file" id="comment-file-${feedId}" accept="image/*,video/*" style="display: none;">
+            <button onclick="toggleEmojiPicker('comment-input-${feedId}')">😊</button>
+            <button onclick="addComment(${feedId})">댓글 달기</button>
+        </div>
+          <div id="emoji-picker-comment-input-${feedId}" class="emoji-picker"></div>
+        <div id="preview-${feedId}" style="margin-top: 5px;"></div>
+    `;
 
     commentsDiv.innerHTML = commentHTML;
 }
+
 
 // ✅ 댓글삭제.
 async function deleteComment(commentId, feedId) {
@@ -784,6 +974,8 @@ async function deleteComment(commentId, feedId) {
 
 
 
+
+
 // ✅ 답글 입력창 토글 (대댓글 입력창을 클릭한 댓글 아래에 표시)
 function toggleReplyInput(commentId, feedId) {
     const replyContainer = document.getElementById(`reply-container-${commentId}`);
@@ -796,59 +988,100 @@ function toggleReplyInput(commentId, feedId) {
 
     // ✅ 입력창을 기존 댓글 아래에 바로 삽입
     replyContainer.innerHTML = `
-    <div class="reply-input">
-        <input type="text" id="reply-input-field-${commentId}" placeholder="답글 입력...">
-        <input type="file" id="reply-media-${commentId}"> <!-- ✅ 대댓글 파일 입력창 -->
-        <button onclick="addComment(${feedId}, ${commentId})">답글 작성</button>
-    </div>
+  <div class="reply-input" style="display: flex; align-items: center; gap: 5px;">
+      <input type="text" id="reply-input-field-${commentId}" placeholder="대댓글입력..." style="flex: 1;">
+      <label for="reply-media-${commentId}" style="cursor: pointer;">📷</label>
+      <input type="file" id="reply-media-${commentId}" accept="image/*,video/*" style="display: none;">
+          <button onclick="toggleEmojiPicker('reply-input-field-${commentId}')">😊</button>
+      <button onclick="addComment(${feedId}, ${commentId})">대댓글 작성</button>
+  </div>
+    <div id="emoji-picker-reply-input-field-${commentId}" class="emoji-picker"></div>
+  <div id="reply-preview-${commentId}" style="margin-left: 20px; margin-top: 5px;"></div>
 `;
+
 
 }
 
 // ✅ 댓글 추가 후 카운트 업데이트
 // ✅ 댓글 추가 API 요청
 async function addComment(feedId, parentId = null) {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        alert("로그인이 필요합니다.");
-        return;
-    }
+  const token = localStorage.getItem('token');
+  if (!token) {
+    alert("로그인이 필요합니다.");
+    return;
+  }
 
-    const inputId = parentId ? `reply-input-field-${parentId}` : `comment-input-${feedId}`;
-    const fileInputId = parentId ? `reply-media-${parentId}` : `comment-media-${feedId}`;
+  // ✅ parentId가 있는 경우 → 대댓글
+  const inputId = parentId ? `reply-input-field-${parentId}` : `comment-input-${feedId}`;
+  const fileInputId = parentId ? `reply-media-${parentId}` : `comment-file-${feedId}`;
+  const previewId = parentId ? `reply-preview-${parentId}` : `preview-${feedId}`;
 
-    const content = document.getElementById(inputId).value;
-    const fileInput = document.getElementById(fileInputId);
-    const mediaFile = fileInput?.files?.[0];
+  const content = document.getElementById(inputId)?.value;
+  const fileInput = document.getElementById(fileInputId);
+  const file = fileInput?.files?.[0];
 
-    if (!content && !mediaFile) {
-        alert("내용 또는 파일 중 하나는 입력해야 합니다.");
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append("feed_id", feedId);
-    formData.append("content", content);
-    if (parentId) formData.append("parent_id", parentId);
-    if (mediaFile) formData.append("media", mediaFile);
-
-    const res = await fetch(`${api}/add-comment`, {
-        method: 'POST',
-        headers: {
-            'Authorization': 'Bearer ' + token
-        },
-        body: formData
-    });
-
-    if (res.ok) {
-        const data = await res.json();
-        document.getElementById(`comment-count-${feedId}`).innerText = data.comment_count;
-        commentFeed(feedId);
-    } else {
-        const err = await res.json();
-        alert("댓글 등록 실패: " + (err.error || "오류"));
-    }
+  if (!content && !file) {
+  showToast("❗️내용또는 미디어 파일 넣어주세요.!");
+  return;
 }
+
+
+  const formData = new FormData();
+  formData.append('feed_id', feedId);
+  if (parentId) formData.append('parent_id', parentId);
+  formData.append('content', content);
+  if (file) formData.append('media', file);
+
+  const res = await fetch(`${api}/add-comment`, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token },
+    body: formData
+  });
+
+  if (res.ok) {
+    const data = await res.json();
+
+    // ✅ 입력창, 파일, 미리보기 초기화
+    if (document.getElementById(inputId)) document.getElementById(inputId).value = '';
+    if (fileInput) fileInput.value = '';
+    if (document.getElementById(previewId)) document.getElementById(previewId).innerHTML = '';
+
+    // ✅ 댓글 수 업데이트
+    document.getElementById(`comment-count-${feedId}`).innerText = data.comment_count;
+
+    // ✅ 전체 댓글 다시 불러오기
+    commentFeed(feedId);
+  } else {
+    alert("댓글 업로드 실패");
+  }
+}
+
+
+document.addEventListener("change", (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    let previewDiv;
+
+    if (e.target.id.startsWith("comment-file-")) {
+        const feedId = e.target.id.replace("comment-file-", "");
+        previewDiv = document.getElementById(`preview-${feedId}`);
+    } else if (e.target.id.startsWith("reply-media-")) {
+        const commentId = e.target.id.replace("reply-media-", "");
+        previewDiv = document.getElementById(`reply-preview-${commentId}`);
+    }
+
+    if (previewDiv) {
+        previewDiv.innerHTML = "";
+        const url = URL.createObjectURL(file);
+        previewDiv.innerHTML = file.type.startsWith("video")
+            ? `<video src="${url}" controls style="max-width: 300px;"></video>`
+            : `<img src="${url}" style="max-width: 300px;">`;
+    }
+});
+
+
+
 
 
   // ✅ 대댓글 추가
