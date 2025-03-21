@@ -5,52 +5,99 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>피드 작성 - MaxFeed</title>
   <link href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.min.css" rel="stylesheet">
+  <style>
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      z-index: 9999;
+      opacity: 0;
+    }
+  </style>
 </head>
 <body>
 
 <h2>새 피드 작성</h2>
 <textarea id="content" placeholder="내용을 입력하세요"></textarea><br>
-<input type="file" id="file">
-<button onclick="addFeed()">업로드</button>
+<input type="file" id="file" multiple>
+<button id="upload-btn" onclick="addFeed()">업로드</button>
 <button onclick="location.href='index.html'">이전</button>
 
 <script>
 const api = 'https://supermax.kr/feed';
 
-async function addFeed() {
-  console.log("🚀 addFeed() 실행됨!"); // ✅ 이 로그가 뜨는지 확인!
+// ✅ 토스트 메시지 표시 함수
+function showToast(msg) {
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.innerText = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.style.opacity = 1, 10);
+  setTimeout(() => {
+    toast.style.opacity = 0;
+    setTimeout(() => toast.remove(), 500);
+  }, 2000);
+}
 
+// ✅ 피드 업로드 함수
+async function addFeed() {
   const fileInput = document.getElementById('file');
   const content = document.getElementById('content').value;
+  const uploadBtn = document.getElementById('upload-btn');
 
-  console.log("📂 파일 정보:", fileInput.files[0]); // ✅ 파일이 선택되었는지 확인!
-  console.log("📝 내용:", content); // ✅ 내용이 정상적으로 들어갔는지 확인!
+  // ✅ 버튼 잠금 및 UX
+  uploadBtn.disabled = true;
+  uploadBtn.innerText = '⏳ 업로드 중...';
 
   if (!fileInput.files.length) {
     alert('파일을 선택하세요!');
+    uploadBtn.disabled = false;
+    uploadBtn.innerText = '업로드';
     return;
   }
 
   const formData = new FormData();
   formData.append('content', content);
-  formData.append('file', fileInput.files[0]);
+  for (let i = 0; i < fileInput.files.length; i++) {
+    formData.append('files', fileInput.files[i]);
+  }
 
-  const res = await fetch(`${api}/add-feed`, {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
-    body: formData
-  });
+  // ✅ 피드 업로드 안내
+  showToast("⏳ 피드 업로드 중...");
+  localStorage.setItem("pendingUpload", "true");
 
-  if (res.ok) {
-    alert('업로드 완료');
-    location.href = 'index.html';
-  } else {
-    const errorData = await res.json();
-    console.error("🔥 서버 응답 오류:", errorData);
-    alert('업로드 실패: ' + (errorData.error || '알 수 없는 오류'));
+  try {
+    const res = await fetch(`${api}/add-feed`, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+      body: formData
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      console.log("✅ 업로드 성공:", data);
+
+      // ✅ 성공 후 메인 페이지로 이동
+      location.href = 'index.html';
+    } else {
+      const err = await res.json();
+      alert("❌ 업로드 실패: " + (err.error || "오류"));
+      uploadBtn.disabled = false;
+      uploadBtn.innerText = '업로드';
+    }
+
+  } catch (err) {
+    console.error("🔥 업로드 오류:", err);
+    alert("❌ 업로드 실패: " + err.message);
+    uploadBtn.disabled = false;
+    uploadBtn.innerText = '업로드';
   }
 }
-
 </script>
 
 </body>
