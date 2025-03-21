@@ -248,17 +248,30 @@ video {
 }
 .swiper {
   width: 100%;
-  height: 300px;
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+  overflow: hidden;
   margin-top: 10px;
+}
+
+.swiper-slide {
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #fff;
 }
 
 .swiper-slide img,
 .swiper-slide video {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 10px;
+  height: auto;
+  max-height: 400px;
+  object-fit: contain; /* or 'cover' if you want to crop neatly */
+  border-radius: 8px;
 }
+
 
 
 
@@ -682,8 +695,8 @@ async function commentFeed(feedId) {
 
     let commentHTML = "";
 comments.forEach(comment => {
-    const isReply = comment.parent_id ? "ㄴ" : ""; // 🔥 대댓글이면 "ㄴ" 표시
-    const deleteButton = (userId && userId == comment.user_id) ? `<button class="delete-btn" onclick="deleteComment(${comment.id}, ${feedId})">❌</button>` : ""; // ✅ 내가 쓴 댓글만 삭제 버튼 표시
+    const isReply = comment.parent_id ? "ㄴ" : "";
+    const deleteButton = (userId && userId == comment.user_id) ? `<button class="delete-btn" onclick="deleteComment(${comment.id}, ${feedId})">❌</button>` : "";
 
     commentHTML += `
         <div class="comment" id="comment-${comment.id}">
@@ -691,15 +704,31 @@ comments.forEach(comment => {
             ${deleteButton}
             <button class="reply-btn" onclick="toggleReplyInput(${comment.id}, ${feedId})">↩️</button>
         </div>
-        <div id="reply-container-${comment.id}" class="reply-container"></div> <!-- 🔥 입력창 들어갈 자리 -->
     `;
+
+    // ✅ 댓글에 media_url 있는 경우: 이미지나 영상 추가
+    if (comment.media_url) {
+        commentHTML += `
+            <div style="margin-left: 20px; margin-top: 5px;">
+                ${comment.media_url.includes('.mp4')
+                    ? `<video controls src="${comment.media_url}" style="max-width: 300px;"></video>`
+                    : `<img src="${comment.media_url}" style="max-width: 300px;">`}
+            </div>
+        `;
+    }
+
+    // ✅ 대댓글 입력창 자리
+    commentHTML += `<div id="reply-container-${comment.id}" class="reply-container"></div>`;
 });
 
 
-    commentHTML += `
-        <input type="text" id="comment-input-${feedId}" placeholder="댓글 입력...">
-        <button onclick="addComment(${feedId})">댓글 달기</button>
-    `;
+
+commentHTML += `
+    <input type="text" id="comment-input-${feedId}" placeholder="댓글 입력...">
+    <input type="file" id="comment-media-${feedId}"> <!-- ✅ 파일 입력창 추가 -->
+    <button onclick="addComment(${feedId})">댓글 달기</button>
+`;
+
 
     commentsDiv.innerHTML = commentHTML;
 }
@@ -767,11 +796,13 @@ function toggleReplyInput(commentId, feedId) {
 
     // ✅ 입력창을 기존 댓글 아래에 바로 삽입
     replyContainer.innerHTML = `
-        <div class="reply-input">
-            <input type="text" id="reply-input-field-${commentId}" placeholder="답글 입력...">
-            <button onclick="addComment(${feedId}, ${commentId})">답글 작성</button>
-        </div>
-    `;
+    <div class="reply-input">
+        <input type="text" id="reply-input-field-${commentId}" placeholder="답글 입력...">
+        <input type="file" id="reply-media-${commentId}"> <!-- ✅ 대댓글 파일 입력창 -->
+        <button onclick="addComment(${feedId}, ${commentId})">답글 작성</button>
+    </div>
+`;
+
 }
 
 // ✅ 댓글 추가 후 카운트 업데이트
@@ -784,24 +815,41 @@ async function addComment(feedId, parentId = null) {
     }
 
     const inputId = parentId ? `reply-input-field-${parentId}` : `comment-input-${feedId}`;
+    const fileInputId = parentId ? `reply-media-${parentId}` : `comment-media-${feedId}`;
+
     const content = document.getElementById(inputId).value;
-    if (!content) {
-        alert("내용을 입력하세요.");
+    const fileInput = document.getElementById(fileInputId);
+    const mediaFile = fileInput?.files?.[0];
+
+    if (!content && !mediaFile) {
+        alert("내용 또는 파일 중 하나는 입력해야 합니다.");
         return;
     }
 
+    const formData = new FormData();
+    formData.append("feed_id", feedId);
+    formData.append("content", content);
+    if (parentId) formData.append("parent_id", parentId);
+    if (mediaFile) formData.append("media", mediaFile);
+
     const res = await fetch(`${api}/add-comment`, {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ feed_id: feedId, content, parent_id: parentId })
+        headers: {
+            'Authorization': 'Bearer ' + token
+        },
+        body: formData
     });
 
     if (res.ok) {
         const data = await res.json();
         document.getElementById(`comment-count-${feedId}`).innerText = data.comment_count;
-        commentFeed(feedId);  // ✅ 다시 댓글 불러오기 (UI 업데이트)
+        commentFeed(feedId);
+    } else {
+        const err = await res.json();
+        alert("댓글 등록 실패: " + (err.error || "오류"));
     }
 }
+
 
   // ✅ 대댓글 추가
 async function replyTo(commentId, feedId) {
