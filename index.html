@@ -325,6 +325,20 @@ video {
     height: 100%;
     object-fit: cover;
   }
+  .logo {
+  font-size: 1.8rem; /* 타이틀 크기 */
+  font-weight: bold;
+  text-align: center;
+  color: #222;
+  padding: 10px 0;
+}
+
+.logo .slogan {
+  font-size: 1rem; /* 슬로건 크기 (타이틀보다 작게) */
+  color: #777; /* 슬로건은 연한 컬러로 */
+  margin-top: 5px;
+  font-weight: normal;
+}
 
 
 
@@ -348,7 +362,10 @@ video {
 
 <!-- 🔥 네비게이션 바 -->
 <nav>
-  <span class="logo">🏋️‍♂️일산맥스타그램(가제)</span>
+  <div class="logo">
+    일맥라운지
+    <div class="slogan">너의 성장을 담다.</div>
+  </div>
   <div class="buttons">
     <div id="user-info" class="profile-info"></div>
     <div class="right-buttons">
