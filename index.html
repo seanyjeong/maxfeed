@@ -106,9 +106,15 @@ nav .right-buttons {
   border-left: 4px solid #c5360b; /* 왼쪽 포인트 라인 */
 }
 .comment {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;  /* 🔥 세로 정렬 */
+  gap: 10px;
+  padding: 8px;
   background: #f2f4f8;
   border-radius: 8px;
-  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  flex-wrap: nowrap;        /* 🔥 줄바꿈 방지 */
 }
 body {
   font-family: 'SUIT', sans-serif;
@@ -236,42 +242,55 @@ video {
   font-size: 1rem;
 }
 
-.comment {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  padding: 8px;
-  background: #f2f4f8;
-  border-radius: 8px;
-  border-bottom: 1px solid #ddd;
+.comments {
+  margin-top: 12px;          /* 🔥 피드와의 간격 */
+  padding: 10px;
+  background: #f9f9fb;       /* 🔥 연한 배경으로 포인트 */
+  border-radius: 10px;
+  border: 1px solid #eee;
 }
-
 .comment-left {
   flex: 1;
+  overflow-wrap: break-word;
+}
+
+
+.comment-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.comment-left strong {
+  display: inline;
+  margin-right: 4px;
 }
 
 .comment-right {
   display: flex;
-  gap: 8px;
   align-items: center;
 }
+
 .reply-btn {
   background: none;
   border: none;
   cursor: pointer;
   font-size: 0.85rem;
   color: #007bff;
-  padding: 4px 6px;
+  padding: 2px 4px;
 }
+
 .delete-btn {
   background: none;
   border: none;
   cursor: pointer;
   font-size: 0.85rem;
-  color: #e00;
-  padding: 4px 6px;
+  color: red;
+  padding: 2px 4px;
 }
+
 
 
 .comment strong {
@@ -334,11 +353,14 @@ video {
     margin-bottom: 10px;
   }
   .comment {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row; /* ✅ 세로로 나오지 않게 */
+    align-items: center;
+    flex-wrap: wrap;
   }
   .comment-right {
-    margin-top: 5px;
+    margin-top: 0;
+    display: flex;
+    gap: 6px;
   }
 }
 .swiper {
@@ -421,6 +443,29 @@ video {
   color: #777; /* 슬로건은 연한 컬러로 */
   margin-top: 5px;
   font-weight: normal;
+}
+.emoji-trigger-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+    width: 100%;
+  }
+  .emoji-trigger-wrapper input {
+    flex: 1;
+    padding: 8px;
+    font-size: 14px;
+  }
+  .emoji-icon {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px;
+  }
+  .comment-left strong {
+  display: inline;     /* ✅ block이나 flex 제거 */
+  margin-right: 4px;   /* ✅ 이름과 내용 사이 여백 조절 */
 }
 
 
@@ -1081,19 +1126,26 @@ async function commentFeed(feedId, forceOpen = false) {
   const isDeleted = comment.deleted == 1;
 
   let commentLine = `
-    <div class="comment" id="comment-${comment.id}">
-      <strong>${isReply} ${comment.name}</strong>: 
+  <div class="comment" id="comment-${comment.id}">
+    <div class="comment-left">
+      <strong>${isReply} ${comment.name}</strong>:
       ${isDeleted ? '<em style="color:#999;">삭제된 댓글입니다.</em>' : comment.content}
-  `;
+      ${!isDeleted ? `<button class="reply-btn" onclick="toggleReplyInput(${comment.id}, ${feedId})">💬 답글</button>` : ""}
+    </div>
+    ${!isDeleted && userId == comment.user_id ? `
+      <div class="comment-right">
+        <button class="delete-btn" onclick="deleteComment(${comment.id}, ${feedId})">❌</button>
+      </div>` : ""}
+  </div>
+`;
 
-  if (!isDeleted) {
-    if (userId && userId == comment.user_id) {
-      commentLine += `<button class="delete-btn" onclick="deleteComment(${comment.id}, ${feedId})">❌</button>`;
-    }
-    commentLine += `<button class="reply-btn" onclick="toggleReplyInput(${comment.id}, ${feedId})">↩️</button>`;
-  }
 
-  commentLine += `</div>`;
+
+
+commentLine += `
+    </div>
+  </div>
+`;
 
   // ✅ 미디어 표시 (삭제된 댓글은 생략)
   if (!isDeleted && comment.media_url) {
@@ -1115,20 +1167,20 @@ async function commentFeed(feedId, forceOpen = false) {
 
   // ✅ 메인 댓글 입력창 (파일첨부, 이모지 포함)
   commentHTML += `
-    <div style="margin-top: 10px;">
-      <div style="display: flex; gap: 5px; align-items: center;">
-        <input type="text" id="comment-input-${feedId}" placeholder="댓글 입력..." style="flex: 1;">
-        <label for="comment-file-${feedId}" style="cursor: pointer;">📷</label>
-        <input type="file" id="comment-file-${feedId}" accept="image/*,video/*" style="display: none;">
-        <button onclick="setupEmojiPicker('comment-input-${feedId}', this)">😊</button>
-      </div>
-      <div style="margin-top: 6px; text-align: right;">
-        <button onclick="addComment(${feedId})" style="padding: 6px 12px; font-size: 0.9rem;">댓글 달기</button>
-      </div>
-      <div id="emoji-picker-comment-input-${feedId}" class="emoji-picker"></div>
-      <div id="preview-${feedId}" style="margin-top: 5px;"></div>
+  <div style="margin-top: 10px;">
+    <div class="emoji-trigger-wrapper">
+      <input type="text" id="comment-input-${feedId}" placeholder="댓글 입력...">
+      <label for="comment-file-${feedId}" style="cursor: pointer;">📷</label>
+      <input type="file" id="comment-file-${feedId}" accept="image/*,video/*" style="display: none;">
+      <button class="emoji-icon" onclick="setupEmojiPicker('comment-input-${feedId}', this)">😊</button>
     </div>
-  `;
+    <div style="margin-top: 6px; text-align: right;">
+      <button onclick="addComment(${feedId})" style="padding: 6px 12px; font-size: 0.9rem;">댓글 달기</button>
+    </div>
+    <div id="emoji-picker-comment-input-${feedId}" class="emoji-picker"></div>
+    <div id="preview-${feedId}" style="margin-top: 5px;"></div>
+  </div>
+`;
 
   commentsDiv.innerHTML = commentHTML;
 }
@@ -1200,18 +1252,17 @@ function toggleReplyInput(commentId, feedId) {
 
     // ✅ 입력창을 기존 댓글 아래에 바로 삽입
     replyContainer.innerHTML = `
-<div class="reply-input" style="position: relative; display: flex; align-items: center; gap: 5px;">
-
-      <input type="text" id="reply-input-field-${commentId}" placeholder="대댓글입력..." style="flex: 1;">
-      <label for="reply-media-${commentId}" style="cursor: pointer;">📷</label>
-      <input type="file" id="reply-media-${commentId}" accept="image/*,video/*" style="display: none;">
-<button onclick="setupEmojiPicker('reply-input-field-${commentId}', this)">😊</button>
-
-      <button onclick="addComment(${feedId}, ${commentId})">대댓글 작성</button>
+  <div class="reply-input" style="position: relative; display: flex; align-items: center; gap: 5px;">
+    <input type="text" id="reply-input-field-${commentId}" placeholder="대댓글입력..." style="flex: 1;">
+    <label for="reply-media-${commentId}" style="cursor: pointer;">📷</label>
+    <input type="file" id="reply-media-${commentId}" accept="image/*,video/*" style="display: none;">
+    <button onclick="setupEmojiPicker('reply-input-field-${commentId}', this)">😊</button>
+    <button onclick="addComment(${feedId}, ${commentId})">대댓글 작성</button>
   </div>
-    <div id="emoji-picker-reply-input-field-${commentId}" class="emoji-picker"></div>
+  <div id="emoji-picker-reply-input-field-${commentId}" class="emoji-picker"></div>
   <div id="reply-preview-${commentId}" style="margin-left: 20px; margin-top: 5px;"></div>
 `;
+
 
 
 }
