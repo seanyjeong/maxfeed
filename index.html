@@ -281,6 +281,10 @@ video {
   color: #007bff;
   padding: 2px 4px;
 }
+.comment {
+  margin-bottom: 8px; /* 💬 댓글 사이 여백 */
+}
+
 
 .delete-btn {
   background: none;
@@ -290,6 +294,12 @@ video {
   color: red;
   padding: 2px 4px;
 }
+/* 대댓글(들여쓰기 + 배경 색상 약간 변경) */
+.comment.reply {
+  margin-left: 20px;
+  background: #eef2f7; /* 기존보다 살짝 연한 배경 */
+}
+
 
 
 
@@ -818,10 +828,29 @@ function logout() {
     }, 50);
 }
 
+function getRelativeTime(dateStr) {
+  const date = new Date(dateStr);
+  const now = new Date();
+// getRelativeTime 함수 내
+const serverTimeOffset = -3 * 60; // 3분 차이 나는 경우 (초 단위)
+const diff = ((now - date) / 1000) + serverTimeOffset;
+
+  
+
+  if (isNaN(diff)) return ""; // 🔥 날짜가 없을 경우 빈값 반환
+
+  if (diff < 120) return "방금 전";
+  if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}일 전`;
+
+  return date.toLocaleDateString();
+}
 
 
 // ✅ 피드 목록 가져오기 (좋아요/댓글 개수 포함, 멀티 미디어 대응)
 // ✅ 피드 목록 가져오기 (슬라이드 + 좋아요 + 댓글 + 삭제 포함)
+
 async function loadFeeds(endpoint) {
     document.getElementById('feeds-title').innerText = "📌 피드 목록"; // ✅ 제목 초기화
 
@@ -853,6 +882,8 @@ async function loadFeeds(endpoint) {
         const likeCount = feed.like_count || 0;
         const commentCount = feed.comment_count || 0;
         const isMyFeed = localStorage.getItem('user_id') == feed.user_id;
+
+        const timeAgo = getRelativeTime(feed.created_at);  // ✅ 요기 선언!
 
         // ✅ 미디어 슬라이드 생성
         let mediaHTML = '';
@@ -902,9 +933,16 @@ ${url.includes('.mp4')
 
         // ✅ 피드 렌더링
         feedsDiv.innerHTML += `<div class="feed">
-            <div class="profile">
-                <img src="${profileImage}">
-  <strong class="clickable-username" onclick="loadUserFeeds(${feed.user_id}, '${feed.name.replace(/'/g, "\\'")}')">${feed.name}</strong>
+           <div class="profile">
+  <img src="${profileImage}">
+  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+    <strong class="clickable-username" onclick="loadUserFeeds(${feed.user_id}, '${feed.name.replace(/'/g, "\\'")}')">${feed.name}</strong>
+    <span class="timestamp" style="font-size: 0.85rem; color: #888;">${timeAgo}</span>
+  </div>
+</div>
+
+
+
 
             </div>
             <p>${feed.content || ''}</p>
@@ -1122,13 +1160,13 @@ async function commentFeed(feedId, forceOpen = false) {
   let commentHTML = "";
 
   comments.forEach(comment => {
-  const isReply = comment.parent_id ? "ㄴ" : "";
+
   const isDeleted = comment.deleted == 1;
 
   let commentLine = `
-  <div class="comment" id="comment-${comment.id}">
+  <div class="comment ${comment.parent_id ? 'reply' : ''}" id="comment-${comment.id}">
     <div class="comment-left">
-      <strong>${isReply} ${comment.name}</strong>:
+      <strong>${comment.name}</strong>:
       ${isDeleted ? '<em style="color:#999;">삭제된 댓글입니다.</em>' : comment.content}
       ${!isDeleted ? `<button class="reply-btn" onclick="toggleReplyInput(${comment.id}, ${feedId})">💬 답글</button>` : ""}
     </div>
@@ -1138,6 +1176,7 @@ async function commentFeed(feedId, forceOpen = false) {
       </div>` : ""}
   </div>
 `;
+
 
 
 
@@ -1424,6 +1463,8 @@ async function loadFeeds(endpoint, page = 1) {
     const commentCount = feed.comment_count || 0;
     const isMyFeed = localStorage.getItem('user_id') == feed.user_id;
 
+    const timeAgo = getRelativeTime(feed.created_at); // ✅ 시간 표시용
+
     let mediaHTML = '';
     try {
       const mediaArray = JSON.parse(feed.media_url);
@@ -1467,7 +1508,10 @@ async function loadFeeds(endpoint, page = 1) {
     feedsDiv.innerHTML += `<div class="feed">
       <div class="profile">
         <img src="${profileImage}">
-        <strong class="clickable-username" onclick="loadUserFeeds(${feed.user_id}, '${feed.name.replace(/'/g, "\\'")}')">${feed.name}</strong>
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <strong class="clickable-username" onclick="loadUserFeeds(${feed.user_id}, '${feed.name.replace(/'/g, "\\'")}')">${feed.name}</strong>
+          <span class="timestamp" style="font-size: 0.85rem; color: #888;">${timeAgo}</span>
+        </div>
       </div>
       <p>${feed.content || ''}</p>
       ${mediaHTML}
@@ -1484,6 +1528,7 @@ async function loadFeeds(endpoint, page = 1) {
 
   await setupVideoObservers();
 }
+
 const emojiPickers = {};  // 피드별 이모지 팝업 관리
 
 function setupEmojiPicker(inputId, buttonElement) {
