@@ -544,8 +544,11 @@ video {
 <!-- 📌 피드 버튼 (아이콘 추가) -->
 <div class="feed-buttons">
   <button onclick="location.href='upload.html'">✏️ 피드 작성</button>
-  <button onclick="loadFeeds('/feeds')">📢 전체 피드</button>
-  <button onclick="loadFeeds('/my-feeds')">👤 내 피드</button>
+  <button onclick="resetFeedState('/feeds'); loadFeeds('/feeds')">📢 전체 피드</button>
+  <button onclick="resetFeedState('/my-feeds'); loadFeeds('/my-feeds')">👤 내 피드</button>
+  
+  
+
 </div>
 
 <!-- 📌 피드 목록 -->
@@ -561,6 +564,12 @@ video {
 
 
 <script>
+  let currentFeedEndpoint = '/feeds';
+const limit = 10;
+let loading = false; // 초기화
+let done = false;
+const loadedFeedIds = new Set();
+  
 
 class EmojiButton {
   constructor(options = {}) {
@@ -694,19 +703,21 @@ toast.style.fontWeight = "500";
   setTimeout(() => { toast.style.transition = 'opacity 0.3s'; toast.style.opacity = 1; }, 10);
   setTimeout(() => { toast.style.opacity = 0; setTimeout(() => toast.remove(), 300); }, 2000);
 }
-  async function init() {
-    await checkUser();  // ✅ 사용자 정보를 먼저 가져옴
-    await loadFeeds('/feeds');  // ✅ 피드를 정상적으로 가져옴
-}
+
+let page = 1;
+
+
 const observer = new IntersectionObserver(async (entries) => {
-  if (entries[0].isIntersecting && !loading) {
+  if (entries[0].isIntersecting && !loading && !done) {
     loading = true;
-    await loadFeeds('/feeds', page);
-    page++;
+    console.log("🌀 무한스크롤 triggered, page:", page);
+    await loadFeeds(currentFeedEndpoint, page);
     loading = false;
   }
 }, { threshold: 1 });
+
 observer.observe(document.getElementById('scroll-anchor'));
+
 
 
 init(); // ✅ 초기 실행
@@ -770,10 +781,8 @@ console.log("🔹 현재 저장된 token:", localStorage.getItem('token'));
 console.log("🔹 현재 저장된 user_id:", localStorage.getItem('user_id'));
 
 
-let page = 1;
-const limit = 5;
-let loading = false;
-let done = false;
+
+
 
 // ✅ 로그인 상태 확인 및 네비게이션 바 업데이트
 async function checkUser() {
@@ -863,116 +872,7 @@ const diff = ((now - date) / 1000) + serverTimeOffset;
 
 
 
-// ✅ 피드 목록 가져오기 (좋아요/댓글 개수 포함, 멀티 미디어 대응)
-// ✅ 피드 목록 가져오기 (슬라이드 + 좋아요 + 댓글 + 삭제 포함)
 
-async function loadFeeds(endpoint) {
-    document.getElementById('feeds-title').innerText = "📌 피드 목록"; // ✅ 제목 초기화
-
-    const headers = {};
-    if (endpoint === '/my-feeds') {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            alert('로그인이 필요합니다.');
-            return;
-        }
-        headers['Authorization'] = 'Bearer ' + token;
-    }
-
-    const res = await fetch(`${api}${endpoint}?page=${page}&limit=${limit}`, { headers });
-
-
-    if (!res.ok) {
-        alert('서버 오류: ' + res.status);
-        return;
-    }
-
-    const feeds = await res.json();
-    const feedsDiv = document.getElementById('feeds');
-    feedsDiv.innerHTML = '';
-
-    feeds.forEach(feed => {
-        const profileImage = feed.profile_image || "https://placehold.co/40x40";
-        const likedClass = feed.liked ? "liked" : "";
-        const likeCount = feed.like_count || 0;
-        const commentCount = feed.comment_count || 0;
-        const isMyFeed = localStorage.getItem('user_id') == feed.user_id;
-
-        const timeAgo = getRelativeTime(feed.created_at);  // ✅ 요기 선언!
-
-        // ✅ 미디어 슬라이드 생성
-        let mediaHTML = '';
-        try {
-            const mediaArray = JSON.parse(feed.media_url);
-            if (Array.isArray(mediaArray) && mediaArray.length > 0) {
-                const slides = mediaArray.map(url => {
-                    return `<div class="swiper-slide">
-${url.includes('.mp4')
-    ? `<video class="feed-video" controls muted src="${url}"></video>`
-    : `<img src="${url}">`}
-
-                    </div>`;
-                }).join('');
-
-                const swiperId = `swiper-${feed.id}`;
-                mediaHTML = `
-                    <div class="swiper" id="${swiperId}">
-                        <div class="swiper-wrapper">
-                            ${slides}
-                        </div>
-                        <div class="swiper-pagination"></div>
-                        <div class="swiper-button-prev"></div>
-                        <div class="swiper-button-next"></div>
-                    </div>
-                `;
-
-                // ✅ Swiper 초기화 (비동기 렌더링 대비)
-                setTimeout(() => {
-                    new Swiper(`#${swiperId}`, {
-                        loop: true,
-                        pagination: { el: `#${swiperId} .swiper-pagination` },
-                        navigation: {
-                            nextEl: `#${swiperId} .swiper-button-next`,
-                            prevEl: `#${swiperId} .swiper-button-prev`,
-                        },
-                    });
-                }, 0);
-            }
-        } catch (e) {
-            if (feed.media_url) {
-                mediaHTML = feed.media_url.includes('.mp4')
-                    ? `<video controls src="${feed.media_url}"></video>`
-                    : `<img src="${feed.media_url}">`;
-            }
-        }
-
-        // ✅ 피드 렌더링
-        feedsDiv.innerHTML += `<div class="feed">
-           <div class="profile">
-  <img src="${profileImage}">
-  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-    <strong class="clickable-username" onclick="loadUserFeeds(${feed.user_id}, '${feed.name.replace(/'/g, "\\'")}')">${feed.name}</strong>
-    <span class="timestamp" style="font-size: 0.85rem; color: #888;">${timeAgo}</span>
-  </div>
-</div>
-
-
-
-
-            </div>
-            <p>${feed.content || ''}</p>
-            ${mediaHTML}
-            <div class="actions">
-                <button class="like-btn ${likedClass}" id="like-btn-${feed.id}" onclick="likeFeed(${feed.id})">❤️ ${likeCount}</button>
-                <button id="comment-btn-${feed.id}" onclick="commentFeed(${feed.id})" class="icon-btn">
-                    <span>💬</span> <span id="comment-count-${feed.id}">${commentCount}</span>
-                </button>
-                ${isMyFeed ? `<button class="icon-btn" onclick="deleteFeed(${feed.id})">🗑️</button>` : ""}
-            </div>
-            <div id="comments-${feed.id}" class="comments"></div>
-        </div>`;
-    });
-}
 
 
 
@@ -1005,87 +905,31 @@ async function deleteFeed(feedId) {
     }
 }
 
-// 해당 유저 피드만 불러오는 함수
+// ✅ loadUserFeeds 정리
 async function loadUserFeeds(userId, userName) {
-  document.getElementById('feeds-title').innerText = `👤 ${userName}님의 피드`;
+  currentFeedEndpoint = `/user-feeds/${userId}`;
+  currentUserName = userName;
+  resetFeedState(currentFeedEndpoint); // 상태 초기화 및 feeds 영역 비우기
+  
+  page = 1;
+  done = false;
+  loading = false;
 
-  const res = await fetch(`${api}/user-feeds/${userId}`);
-  if (!res.ok) {
-    alert("해당 유저 피드를 불러올 수 없습니다.");
-    return;
-  }
-
-  const feeds = await res.json();
   const feedsDiv = document.getElementById('feeds');
+  const titleEl = document.getElementById('feeds-title');
+
   feedsDiv.innerHTML = '';
+  titleEl.innerText = `👤 ${userName}님의 피드`;
+  await loadFeeds(currentFeedEndpoint); // 여기에서 DOM 업데이트 완료됨
 
-  // 기존 loadFeeds와 동일하게 렌더링 반복
-  feeds.forEach(feed => {
-    const profileImage = feed.profile_image || "https://placehold.co/40x40";
-    const likeCount = feed.like_count || 0;
-    const commentCount = feed.comment_count || 0;
-    const isMyFeed = localStorage.getItem('user_id') == feed.user_id;
-
-    let mediaHTML = '';
-    try {
-      const mediaArray = JSON.parse(feed.media_url);
-      if (Array.isArray(mediaArray) && mediaArray.length > 0) {
-        const slides = mediaArray.map(url => {
-          return `<div class="swiper-slide">
-            ${url.includes('.mp4') ? `<video controls src="${url}"></video>` : `<img src="${url}">`}
-          </div>`;
-        }).join('');
-
-        const swiperId = `swiper-${feed.id}`;
-        mediaHTML = `
-          <div class="swiper" id="${swiperId}">
-            <div class="swiper-wrapper">${slides}</div>
-            <div class="swiper-pagination"></div>
-            <div class="swiper-button-prev"></div>
-            <div class="swiper-button-next"></div>
-          </div>
-        `;
-
-        setTimeout(() => {
-          new Swiper(`#${swiperId}`, {
-            loop: true,
-            pagination: { el: `#${swiperId} .swiper-pagination` },
-            navigation: {
-              nextEl: `#${swiperId} .swiper-button-next`,
-              prevEl: `#${swiperId} .swiper-button-prev`,
-            },
-          });
-        }, 0);
-      }
-    } catch (e) {
-      if (feed.media_url) {
-        mediaHTML = feed.media_url.includes('.mp4')
-          ? `<video controls src="${feed.media_url}"></video>`
-          : `<img src="${feed.media_url}">`;
-      }
-    }
-
-    feedsDiv.innerHTML += `
-      <div class="feed">
-        <div class="profile">
-          <img src="${profileImage}">
-          <strong class="clickable-username" onclick="loadUserFeeds(${feed.user_id}, '${feed.name}')">${feed.name}</strong>
-
-        </div>
-        <p>${feed.content || ''}</p>
-        ${mediaHTML}
-        <div class="actions">
-          <button class="like-btn" onclick="likeFeed(${feed.id})">❤️ ${likeCount}</button>
-          <button class="icon-btn" onclick="commentFeed(${feed.id})">
-            💬 <span id="comment-count-${feed.id}">${commentCount}</span>
-          </button>
-          ${isMyFeed ? `<button class="icon-btn" onclick="deleteFeed(${feed.id})">🗑️</button>` : ""}
-        </div>
-        <div id="comments-${feed.id}" class="comments"></div>
-      </div>
-    `;
-  });
+  // 불필요한 feeds 참조 코드를 제거합니다.
+  // setupVideoObservers 및 페이지 증가 작업만 남깁니다.
+  setupVideoObservers();
+  page++;  // 페이지 증가 (다음 무한스크롤 대비)
 }
+
+
+
 
 async function likeComment(commentId) {
   const token = localStorage.getItem('token');
@@ -1486,103 +1330,187 @@ async function setupVideoObservers() {
 
   videos.forEach(video => window.videoObserver.observe(video));
 }
+function resetFeedState(endpoint) {
+  currentFeedEndpoint = endpoint;
+  page = 1;
+  done = false;
+  loading = false;
+  loadedFeedIds.clear();  // ✅ 반드시 초기화해야 중복 로딩 안 생김
+  document.getElementById('feeds').innerHTML = '';
+}
+
+
+
 
 
 
 // ✅ 피드 로딩 완료 시 Observer 초기화
-async function loadFeeds(endpoint, page = 1) {
+// ✅ 피드 로딩 완료 시 Observer 초기화
+// ✅ 완성된 loadFeeds 함수 (전체 피드 / 내 피드 / 유저 피드 모두 동작)
+async function loadFeeds(endpoint, pageArg = null) {
+  const feedsDiv = document.getElementById('feeds');
+  const titleEl = document.getElementById('feeds-title');
+
+  // 이미 로딩 중이거나 모든 피드를 불러왔다면 중단
+  if (loading || done) return;
+  
+  loading = true;
+
+  const isNewEndpoint = currentFeedEndpoint !== endpoint;
+  const pageToUse = pageArg !== null ? pageArg : page;  // ✅ 반드시 선언 필요!!
+
+  if (isNewEndpoint) {
+    currentFeedEndpoint = endpoint;
+    page = 1;
+    done = false;
+    feedsDiv.innerHTML = '';
+    loadedFeedIds.clear();
+  }
+
   const headers = {};
   if (endpoint === '/my-feeds') {
     const token = localStorage.getItem('token');
     if (!token) {
       alert('로그인이 필요합니다.');
+      loading = false;
       return;
     }
     headers['Authorization'] = 'Bearer ' + token;
+    titleEl.innerText = "👤 내 피드";
+  } else if (endpoint === '/feeds') {
+    titleEl.innerText = "📢 전체 피드";
+  } else if (endpoint.startsWith('/user-feeds')) {
+    titleEl.innerText = `👤 ${currentUserName}님의 피드`;
   }
 
-  const res = await fetch(`${api}${endpoint}?page=${page}&limit=${limit}`, { headers });
+  try {
+    const res = await fetch(`${api}${endpoint}?page=${pageToUse}&limit=${limit}`, { headers });
 
-  if (!res.ok) {
-    alert('서버 오류: ' + res.status);
-    return;
-  }
-
-  const feeds = await res.json();
-  const feedsDiv = document.getElementById('feeds');
-
-  feeds.forEach(feed => {
-    const profileImage = feed.profile_image || "https://placehold.co/40x40";
-    const likedClass = feed.liked ? "liked" : "";
-    const likeCount = feed.like_count || 0;
-    const commentCount = feed.comment_count || 0;
-    const isMyFeed = localStorage.getItem('user_id') == feed.user_id;
-
-    const timeAgo = getRelativeTime(feed.created_at); // ✅ 시간 표시용
-
-    let mediaHTML = '';
-    try {
-      const mediaArray = JSON.parse(feed.media_url);
-      if (Array.isArray(mediaArray) && mediaArray.length > 0) {
-        const slides = mediaArray.map(url => {
-          return `<div class="swiper-slide">
-            ${url.includes('.mp4')
-              ? `<video class="feed-video" controls muted preload="none" loading="lazy" src="${url}"></video>`
-              : `<img src="${url}" loading="lazy">`}
-          </div>`;
-        }).join('');
-
-        const swiperId = `swiper-${feed.id}`;
-        mediaHTML = `
-          <div class="swiper" id="${swiperId}">
-            <div class="swiper-wrapper">${slides}</div>
-            <div class="swiper-pagination"></div>
-            <div class="swiper-button-prev"></div>
-            <div class="swiper-button-next"></div>
-          </div>`;
-
-        setTimeout(() => {
-          new Swiper(`#${swiperId}`, {
-            loop: true,
-            pagination: { el: `#${swiperId} .swiper-pagination` },
-            navigation: {
-              nextEl: `#${swiperId} .swiper-button-next`,
-              prevEl: `#${swiperId} .swiper-button-prev`,
-            },
-          });
-        }, 0);
-      }
-    } catch (e) {
-      if (feed.media_url) {
-        mediaHTML = feed.media_url.includes('.mp4')
-          ? `<video class="feed-video" controls muted preload="none" loading="lazy" src="${feed.media_url}"></video>`
-          : `<img src="${feed.media_url}" loading="lazy">`;
-      }
+    if (!res.ok) {
+      alert('서버 오류: ' + res.status);
+      loading = false;
+      return;
     }
 
-    feedsDiv.innerHTML += `<div class="feed">
-      <div class="profile">
-        <img src="${profileImage}">
-        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-          <strong class="clickable-username" onclick="loadUserFeeds(${feed.user_id}, '${feed.name.replace(/'/g, "\\'")}')">${feed.name}</strong>
-          <span class="timestamp" style="font-size: 0.85rem; color: #888;">${timeAgo}</span>
-        </div>
-      </div>
-      <p>${feed.content || ''}</p>
-      ${mediaHTML}
-      <div class="actions">
-        <button class="like-btn ${likedClass}" id="like-btn-${feed.id}" onclick="likeFeed(${feed.id})">❤️ ${likeCount}</button>
-        <button id="comment-btn-${feed.id}" onclick="commentFeed(${feed.id})" class="icon-btn">
-          <span>💬</span> <span id="comment-count-${feed.id}">${commentCount}</span>
-        </button>
-        ${isMyFeed ? `<button class="icon-btn" onclick="deleteFeed(${feed.id})">🗑️</button>` : ""}
-      </div>
-      <div id="comments-${feed.id}" class="comments"></div>
-    </div>`;
-  });
+    const feeds = await res.json();
 
-  await setupVideoObservers();
+    if (feeds.length < limit) {
+      done = true;
+    }
+
+    feeds.forEach(feed => {
+      if (loadedFeedIds.has(feed.id)) return;
+      loadedFeedIds.add(feed.id);
+
+      const profileImage = feed.profile_image || "https://placehold.co/40x40";
+      const likedClass = feed.liked ? "liked" : "";
+      const likeCount = feed.like_count || 0;
+      const commentCount = feed.comment_count || 0;
+      const isMyFeed = localStorage.getItem('user_id') == feed.user_id;
+      const timeAgo = getRelativeTime(feed.created_at);
+
+      let mediaHTML = '';
+      try {
+        const mediaArray = JSON.parse(feed.media_url);
+        if (Array.isArray(mediaArray) && mediaArray.length > 0) {
+          const slides = mediaArray.map(url => {
+            return `<div class="swiper-slide">
+              ${url.includes('.mp4')
+                ? `<video class="feed-video" controls muted preload="none" loading="lazy" src="${url}"></video>`
+                : `<img src="${url}" loading="lazy">`}
+            </div>`;
+          }).join('');
+
+          const swiperId = `swiper-${feed.id}`;
+          mediaHTML = `
+            <div class="swiper" id="${swiperId}">
+              <div class="swiper-wrapper">${slides}</div>
+              <div class="swiper-pagination"></div>
+              <div class="swiper-button-prev"></div>
+              <div class="swiper-button-next"></div>
+            </div>`;
+
+          setTimeout(() => {
+            new Swiper(`#${swiperId}`, {
+              loop: true,
+              pagination: { el: `#${swiperId} .swiper-pagination` },
+              navigation: {
+                nextEl: `#${swiperId} .swiper-button-next`,
+                prevEl: `#${swiperId} .swiper-button-prev`,
+              },
+            });
+          }, 0);
+        }
+      } catch (e) {
+        if (feed.media_url) {
+          mediaHTML = feed.media_url.includes('.mp4')
+            ? `<video class="feed-video" controls muted preload="none" loading="lazy" src="${feed.media_url}"></video>`
+            : `<img src="${feed.media_url}" loading="lazy">`;
+        }
+      }
+
+      feedsDiv.innerHTML += `<div class="feed">
+        <div class="profile">
+          <img src="${profileImage}">
+          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <strong class="clickable-username" onclick="loadUserFeeds(${feed.user_id}, '${feed.name.replace(/'/g, "\\'")}')">${feed.name}</strong>
+            <span class="timestamp" style="font-size: 0.85rem; color: #888;">${timeAgo}</span>
+          </div>
+        </div>
+        <p>${feed.content || ''}</p>
+        ${mediaHTML}
+        <div class="actions">
+          <button class="like-btn ${likedClass}" id="like-btn-${feed.id}" onclick="likeFeed(${feed.id})">❤️ ${likeCount}</button>
+          <button id="comment-btn-${feed.id}" onclick="commentFeed(${feed.id})" class="icon-btn">
+            <span>💬</span> <span id="comment-count-${feed.id}">${commentCount}</span>
+          </button>
+          ${isMyFeed ? `<button class="icon-btn" onclick="deleteFeed(${feed.id})">🗑️</button>` : ""}
+        </div>
+        <div id="comments-${feed.id}" class="comments"></div>
+      </div>`;
+    });
+
+    await setupVideoObservers();
+
+    page++;  // ✅ 페이지 증가
+    
+  } catch (error) {
+    console.error('피드 로딩 중 오류:', error);
+  } finally {
+    loading = false;
+  }
 }
+async function init() {
+    console.log(`초기 페이지: ${page}`); // 정상적으로 초기값 출력
+    await loadFeeds('/feeds'); // 피드 로드
+}
+document.addEventListener('DOMContentLoaded', () => {
+    init(); // init 함수 호출
+});
+
+// 스크롤 이벤트 리스너 추가
+function setupInfiniteScroll() {
+  window.addEventListener('scroll', () => {
+    // 스크롤이 페이지 하단에 도달했는지 확인
+    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
+      // 현재 엔드포인트에 따라 다음 페이지 로드
+      if (currentFeedEndpoint) {
+        loadFeeds(currentFeedEndpoint);
+      }
+    }
+  });
+}
+
+// 페이지 로드 시 무한 스크롤 설정
+document.addEventListener('DOMContentLoaded', () => {
+  setupInfiniteScroll();
+  // 초기 피드 로드 (예: 전체 피드)
+  loadFeeds('/feeds');
+});
+
+
+
+
 
 const emojiPickers = {};  // 피드별 이모지 팝업 관리
 
@@ -1610,13 +1538,11 @@ function setupEmojiPicker(inputId, buttonElement) {
 
 
 
-// ✅ 초기 실행
-checkUser();
-loadFeeds('/feeds');
+
 
 window.addEventListener("DOMContentLoaded", () => {
   checkUser();
-  loadFeeds('/feeds');
+  // loadFeeds('/feeds');
 });
 
 </script>
