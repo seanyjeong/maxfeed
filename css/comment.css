@@ -1,34 +1,40 @@
-.comment {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 8px;
-    background: #f2f4f8;
-    border-radius: 8px;
-    border-bottom: 1px solid #ddd;
-    flex-wrap: nowrap;
-    margin-bottom: 8px;
+.comment-wrapper {
+    margin-bottom: 14px;
   }
   
-  .comment.reply {
+  .comment-box {
+    background: #f2f4f8;
+    border-radius: 10px;
+    padding: 10px;
+    border: 1px solid #ddd;
+  }
+  
+  .comment-wrapper.reply {
     margin-left: 20px;
     background: #eef2f7;
   }
   
-  .comment-left {
+  .comment {
     display: flex;
-    align-items: center;
-    gap: 6px;
-    flex: 1;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
     flex-wrap: wrap;
+    margin-bottom: 5px;
+  }
+  
+  .comment-left {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
     overflow-wrap: break-word;
   }
   
   .comment-left strong {
     display: inline;
-    margin-right: 4px;
     font-weight: bold;
+    margin-right: 4px;
   }
   
   .comment-right {
@@ -36,12 +42,44 @@
     align-items: center;
   }
   
-  .reply-btn, .delete-btn {
+  .comment-actions {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+  }
+  
+  .comment-media {
+    margin-top: 6px;
+    margin-left: 5px;
+  }
+  
+  .reply-container {
+    margin-top: 6px;
+    margin-left: 20px;
+  }
+  
+  .reply-input {
+    margin-top: 5px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  
+  .reply-input input {
+    flex: 1;
+    padding: 5px;
+  }
+  
+  .reply-btn,
+  .like-comment-btn,
+  .delete-btn {
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 0.9rem;
-    margin-left: 5px;
+    font-size: 0.8rem;
+    color: #555;
+    padding: 2px 6px;
+    margin: 0;
   }
   
   .reply-btn {
@@ -52,46 +90,39 @@
     color: red;
   }
   
-  .comments {
-    margin-top: 12px;
-    padding: 10px;
-    background: #f9f9fb;
-    border-radius: 10px;
-    border: 1px solid #eee;
-  }
-  .comments:empty {
-    display: none;
-  }
-  
-  .reply-input {
-    margin-left: 20px;
-    margin-top: 5px;
-  }
-  
-  .reply-input input {
-    width: 80%;
-    padding: 5px;
-  }
-  
-  .like-comment-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 0.85rem;
-    color: #888;
-    margin-left: 10px;
-  }
-  
   .like-comment-btn.liked {
     color: red;
     font-weight: bold;
   }
-  
-  .clickable-username {
+/* 😊 이모지 버튼 */
+.emoji-icon {
+    background: none;
+    border: none;
+    font-size: 18px;
+    padding: 4px;
     cursor: pointer;
-    color: #007bff;
-    text-decoration: underline;
+    line-height: 1;
+    color: #333;
   }
+  
+  /* ✏️ 대댓글 작성 버튼 (이모지 버튼 제외한 나머지) */
+  .reply-input button:not(.emoji-icon) {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  
+  .reply-input button:not(.emoji-icon):hover {
+    background: #0056b3;
+  }
+  
+  
+  
   
   @media screen and (max-width: 480px) {
     .comment {
@@ -99,10 +130,17 @@
       align-items: center;
       flex-wrap: wrap;
     }
+  
     .comment-right {
       margin-top: 0;
       display: flex;
       gap: 6px;
+    }
+  
+    .reply-btn,
+    .like-comment-btn {
+      font-size: 0.75rem;
+      padding: 2px 4px;
     }
   }
   
