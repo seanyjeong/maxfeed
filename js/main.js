@@ -472,7 +472,6 @@ async function likeFeed(feedId) {
 async function commentFeed(feedId, forceOpen = false) {
   const commentsDiv = document.getElementById(`comments-${feedId}`);
 
-  // ✅ 토글 방지: forceOpen이 true일 경우 무조건 다시 렌더링
   if (!forceOpen && commentsDiv.innerHTML.trim() !== "") {
     commentsDiv.innerHTML = "";
     return;
@@ -486,73 +485,94 @@ async function commentFeed(feedId, forceOpen = false) {
 
   const comments = await res.json();
   const userId = localStorage.getItem('user_id');
+
+  // 👉 댓글을 부모와 대댓글로 분리
+  const parents = comments.filter(c => !c.parent_id);
+  const replies = comments.filter(c => c.parent_id);
+
   let commentHTML = "";
 
-  comments.forEach(comment => {
-
-  const isDeleted = comment.deleted == 1;
-
-  const liked = comment.liked; // 서버에서 같이 내려오게 하면 좋아요 상태 체크 가능
-const likeCount = comment.like_count || 0;
-
-commentLine = `
-  <div class="comment ${comment.parent_id ? 'reply' : ''}" id="comment-${comment.id}">
-    <div class="comment-left">
-      <strong>${comment.name}</strong>:
-      ${isDeleted ? '<em style="color:#999;">삭제된 댓글입니다.</em>' : comment.content}
-      ${!isDeleted ? `<button class="reply-btn" onclick="toggleReplyInput(${comment.id}, ${feedId})">💬 답글</button>` : ""}
-      ${!isDeleted ? `<button class="like-comment-btn ${liked ? 'liked' : ''}" onclick="likeComment(${comment.id})">❤️ ${likeCount}</button>` : ""}
-    </div>
-    ${!isDeleted && userId == comment.user_id ? `
-      <div class="comment-right">
-        <button class="delete-btn" onclick="deleteComment(${comment.id}, ${feedId})">❌</button>
-      </div>` : ""}
-  </div>
-`;
-
-
-
-
-
-commentLine += `
-    </div>
-  </div>
-`;
-
-  // ✅ 미디어 표시 (삭제된 댓글은 생략)
-  if (!isDeleted && comment.media_url) {
-    commentLine += `
-      <div style="margin-left: 20px; margin-top: 5px;">
-        ${comment.media_url.includes('.mp4')
-          ? `<video controls src="${comment.media_url}" style="max-width: 300px;"></video>`
-          : `<img src="${comment.media_url}" style="max-width: 300px;">`}
-      </div>
+  // 👉 댓글 렌더링 함수
+  function renderComment(comment) {
+    const isDeleted = comment.deleted == 1;
+    const liked = comment.liked;
+    const likeCount = comment.like_count || 0;
+  
+    let html = `
+      <div class="comment-wrapper ${comment.parent_id ? 'reply' : ''}" id="comment-wrapper-${comment.id}">
+        <div class="comment-box">
+          <div class="comment" id="comment-${comment.id}">
+            <div class="comment-left">
+              <strong>${comment.name}</strong>
+              <span class="comment-content">
+                ${isDeleted ? '<em style="color:#999;">삭제된 댓글입니다.</em>' : comment.content}
+              </span>
+              ${!isDeleted ? `
+                <div class="comment-actions">
+                  <button class="reply-btn" onclick="toggleReplyInput(${comment.id}, ${comment.feed_id})">💬 답글</button>
+                  <button class="like-comment-btn ${liked ? 'liked' : ''}" onclick="likeComment(${comment.id})">❤️ ${likeCount}</button>
+                </div>
+              ` : ''}
+            </div>
+            ${!isDeleted && userId == comment.user_id ? `
+              <div class="comment-right">
+                <button class="delete-btn" onclick="deleteComment(${comment.id}, ${comment.feed_id})">❌</button>
+              </div>` : ''}
+          </div>`;
+  
+    // ✅ 미디어가 있으면 댓글 박스 안에 묶기
+    if (!isDeleted && comment.media_url) {
+      html += `
+          <div class="comment-media">
+            ${comment.media_url.includes('.mp4')
+              ? `<video controls src="${comment.media_url}" style="max-width: 300px;"></video>`
+              : `<img src="${comment.media_url}" style="max-width: 300px;">`}
+          </div>
+      `;
+    }
+  
+    html += `
+        </div> <!-- .comment-box -->
+  
+        <!-- 대댓글 입력창은 박스 바깥에 있어야 기능됨 -->
+        <div id="reply-container-${comment.id}" class="reply-container"></div>
+  
+      </div> <!-- .comment-wrapper -->
     `;
+  
+    return html;
   }
+  
+  
+  
+  
 
-  // ✅ 대댓글 입력창 자리
-  commentLine += `<div id="reply-container-${comment.id}" class="reply-container"></div>`;
+  // 👉 부모 댓글 밑에 대댓글 순서대로 출력
+  parents.forEach(parent => {
+    commentHTML += renderComment(parent);
 
-  commentHTML += commentLine;
-});
+    const childReplies = replies.filter(reply => reply.parent_id === parent.id);
+    childReplies.forEach(reply => {
+      commentHTML += renderComment(reply);
+    });
+  });
 
-
-  // ✅ 메인 댓글 입력창 (파일첨부, 이모지 포함)
+  // ✅ 메인 댓글 입력창 (이모지 + 파일 첨부 포함)
   commentHTML += `
-  <div style="margin-top: 10px;">
-    <div class="emoji-trigger-wrapper">
-      <input type="text" id="comment-input-${feedId}" placeholder="댓글 입력...">
-      <label for="comment-file-${feedId}" style="cursor: pointer;">📷</label>
-      <input type="file" id="comment-file-${feedId}" accept="image/*,video/*" style="display: none;">
-      <button class="emoji-icon" onclick="setupEmojiPicker('comment-input-${feedId}', this)">😊</button>
+    <div style="margin-top: 10px;">
+      <div class="emoji-trigger-wrapper">
+        <input type="text" id="comment-input-${feedId}" placeholder="댓글 입력...">
+        <label for="comment-file-${feedId}" style="cursor: pointer;">📷</label>
+        <input type="file" id="comment-file-${feedId}" accept="image/*,video/*" style="display: none;">
+        <button class="emoji-icon" onclick="setupEmojiPicker('comment-input-${feedId}', this)">😊</button>
+      </div>
+      <div style="margin-top: 6px; text-align: right;">
+        <button onclick="addComment(${feedId})" style="padding: 6px 12px; font-size: 0.9rem;">댓글 달기</button>
+      </div>
+      <div id="emoji-picker-comment-input-${feedId}" class="emoji-picker"></div>
+      <div id="preview-${feedId}" style="margin-top: 5px;"></div>
     </div>
-    <div style="margin-top: 6px; text-align: right;">
-      <button onclick="addComment(${feedId})" style="padding: 6px 12px; font-size: 0.9rem;">댓글 달기</button>
-    </div>
-    <div id="emoji-picker-comment-input-${feedId}" class="emoji-picker"></div>
-    <div id="preview-${feedId}" style="margin-top: 5px;"></div>
-  </div>
-`;
+  `;
 
   commentsDiv.innerHTML = commentHTML;
 }
@@ -629,7 +649,7 @@ function toggleReplyInput(commentId, feedId) {
     <label for="reply-media-${commentId}" style="cursor: pointer;">📷</label>
     <input type="file" id="reply-media-${commentId}" accept="image/*,video/*" style="display: none;">
     <button onclick="setupEmojiPicker('reply-input-field-${commentId}', this)">😊</button>
-    <button onclick="addComment(${feedId}, ${commentId})">대댓글 작성</button>
+    <button onclick="addComment(${feedId}, ${commentId})">답글작성</button>
   </div>
   <div id="emoji-picker-reply-input-field-${commentId}" class="emoji-picker"></div>
   <div id="reply-preview-${commentId}" style="margin-left: 20px; margin-top: 5px;"></div>
