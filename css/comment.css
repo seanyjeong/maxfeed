@@ -141,6 +141,17 @@
     .like-comment-btn {
       font-size: 0.75rem;
       padding: 2px 4px;
+
+        @media screen and (max-width: 480px) {
+  .reply-input {
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .reply-input input {
+    flex: 1 1 100%;
+  }
+}
+
     }
   }
   
