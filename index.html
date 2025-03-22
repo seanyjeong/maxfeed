@@ -328,15 +328,19 @@ video {
 }
 
 .emoji-picker {
-  display: none;
-  position: absolute;
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
   background: #fff;
   border: 1px solid #ccc;
   border-radius: 8px;
-  padding: 5px;
+  padding: 8px;
+  margin-top: 5px;
   box-shadow: 0px 3px 6px rgba(0,0,0,0.1);
-  z-index: 9999;
+  z-index: 999;
 }
+
 .emoji-picker button {
   font-size: 20px;
   margin: 3px;
@@ -431,6 +435,8 @@ video {
   <h3 id="feeds-title">📌 피드 목록</h3>
   <div id="feeds"></div>
 </section>
+<div id="scroll-anchor"></div> <!-- 🔥 무한스크롤 앵커 -->
+
 
 
 
@@ -475,44 +481,58 @@ toast.style.fontWeight = "500";
     await checkUser();  // ✅ 사용자 정보를 먼저 가져옴
     await loadFeeds('/feeds');  // ✅ 피드를 정상적으로 가져옴
 }
+const observer = new IntersectionObserver(async (entries) => {
+  if (entries[0].isIntersecting && !loading) {
+    loading = true;
+    await loadFeeds('/feeds', page);
+    page++;
+    loading = false;
+  }
+}, { threshold: 1 });
+observer.observe(document.getElementById('scroll-anchor'));
+
 
 init(); // ✅ 초기 실행
 
-const emojiList = ['😂', '😍', '🔥', '👍', '🥲', '💯', '🎉', '👏', '😎', '🫶'];
+const emojiList = ['😂', '😍', '🔥', '👍', '🥲', '💯', '🎉', '👏'];
 
 // ✅ 이모지 선택창 토글 함수
 function toggleEmojiPicker(targetInputId) {
-  const pickerId = `emoji-picker-${targetInputId}`;
-  let picker = document.getElementById(pickerId);
+  const input = document.getElementById(targetInputId);
+  if (!input) return;
 
-  // 없으면 새로 만들어서 붙이기
-  if (!picker) {
-    picker = document.createElement('div');
-    picker.id = pickerId;
-    picker.className = 'emoji-picker';
-    document.body.appendChild(picker);
+  const container = input.closest('div');  // 입력창 가장 가까운 div
+  if (!container) return;
+
+  let picker = container.querySelector('.emoji-picker');
+
+  // 이미 있으면 토글로 제거
+  if (picker) {
+    picker.remove();
+    return;
   }
 
-  // 이모지 버튼 렌더링
+  // 새로 만들기
+  picker = document.createElement('div');
+  picker.className = 'emoji-picker';
   picker.innerHTML = emojiList.map(emoji =>
     `<button onclick="insertEmoji('${targetInputId}', '${emoji}')">${emoji}</button>`
   ).join('');
 
-  // 위치 설정 (입력창 아래로)
-  const input = document.getElementById(targetInputId);
-  const rect = input.getBoundingClientRect();
-  picker.style.position = 'absolute';
-  picker.style.left = `${rect.left + window.scrollX}px`;
-  picker.style.top = `${rect.bottom + window.scrollY + 5}px`;
-  picker.style.display = picker.style.display === 'block' ? 'none' : 'block';
+  container.appendChild(picker);
 }
+
 
 // ✅ 이모지를 input에 삽입
 function insertEmoji(inputId, emoji) {
   const input = document.getElementById(inputId);
   if (input) {
     input.value += emoji;
-    document.getElementById(`emoji-picker-${inputId}`).style.display = 'none';
+
+    // 이모지 선택창 닫기
+    const container = input.closest('div');
+    const picker = container.querySelector('.emoji-picker');
+    if (picker) picker.remove();
   }
 }
 
@@ -569,6 +589,10 @@ console.log("🔹 현재 저장된 token:", localStorage.getItem('token'));
 console.log("🔹 현재 저장된 user_id:", localStorage.getItem('user_id'));
 
 
+let page = 1;
+const limit = 5;
+let loading = false;
+let done = false;
 
 // ✅ 로그인 상태 확인 및 네비게이션 바 업데이트
 async function checkUser() {
@@ -654,7 +678,8 @@ async function loadFeeds(endpoint) {
         headers['Authorization'] = 'Bearer ' + token;
     }
 
-    const res = await fetch(`${api}${endpoint}`, { headers });
+    const res = await fetch(`${api}${endpoint}?page=${page}&limit=${limit}`, { headers });
+
 
     if (!res.ok) {
         alert('서버 오류: ' + res.status);
@@ -967,18 +992,23 @@ async function commentFeed(feedId) {
         commentHTML += `<div id="reply-container-${comment.id}" class="reply-container"></div>`;
     });
 
-    // ✅ 메인 댓글 입력창 (파일첨부 포함)
-    commentHTML += `
-        <div style="display: flex; align-items: center; gap: 5px; margin-top: 5px;">
-            <input type="text" id="comment-input-${feedId}" placeholder="댓글 입력..." style="flex: 1;">
-            <label for="comment-file-${feedId}" style="cursor: pointer;">📷</label>
-            <input type="file" id="comment-file-${feedId}" accept="image/*,video/*" style="display: none;">
-            <button onclick="toggleEmojiPicker('comment-input-${feedId}')">😊</button>
-            <button onclick="addComment(${feedId})">댓글 달기</button>
-        </div>
-          <div id="emoji-picker-comment-input-${feedId}" class="emoji-picker"></div>
-        <div id="preview-${feedId}" style="margin-top: 5px;"></div>
-    `;
+// ✅ 메인 댓글 입력창 (파일첨부 포함)
+commentHTML += `
+  <div style="margin-top: 10px;">
+    <div style="display: flex; gap: 5px; align-items: center;">
+      <input type="text" id="comment-input-${feedId}" placeholder="댓글 입력..." style="flex: 1;">
+      <label for="comment-file-${feedId}" style="cursor: pointer;">📷</label>
+      <input type="file" id="comment-file-${feedId}" accept="image/*,video/*" style="display: none;">
+      <button onclick="toggleEmojiPicker('comment-input-${feedId}')">😊</button>
+    </div>
+    <div style="margin-top: 6px; text-align: right;">
+      <button onclick="addComment(${feedId})" style="padding: 6px 12px; font-size: 0.9rem;">댓글 달기</button>
+    </div>
+    <div id="emoji-picker-comment-input-${feedId}" class="emoji-picker"></div>
+    <div id="preview-${feedId}" style="margin-top: 5px;"></div>
+  </div>
+`;
+
 
     commentsDiv.innerHTML = commentHTML;
 }
@@ -1194,9 +1224,7 @@ async function setupVideoObservers() {
 
 
 // ✅ 피드 로딩 완료 시 Observer 초기화
-async function loadFeeds(endpoint) {
-  document.getElementById('feeds-title').innerText = "📌 피드 목록"; 
-
+async function loadFeeds(endpoint, page = 1) {
   const headers = {};
   if (endpoint === '/my-feeds') {
     const token = localStorage.getItem('token');
@@ -1207,7 +1235,7 @@ async function loadFeeds(endpoint) {
     headers['Authorization'] = 'Bearer ' + token;
   }
 
-  const res = await fetch(`${api}${endpoint}`, { headers });
+  const res = await fetch(`${api}${endpoint}?page=${page}&limit=${limit}`, { headers });
 
   if (!res.ok) {
     alert('서버 오류: ' + res.status);
@@ -1216,7 +1244,6 @@ async function loadFeeds(endpoint) {
 
   const feeds = await res.json();
   const feedsDiv = document.getElementById('feeds');
-  feedsDiv.innerHTML = '';
 
   feeds.forEach(feed => {
     const profileImage = feed.profile_image || "https://placehold.co/40x40";
@@ -1232,8 +1259,8 @@ async function loadFeeds(endpoint) {
         const slides = mediaArray.map(url => {
           return `<div class="swiper-slide">
             ${url.includes('.mp4')
-              ? `<video class="feed-video" controls muted src="${url}"></video>`
-              : `<img src="${url}">`}
+              ? `<video class="feed-video" controls muted preload="none" loading="lazy" src="${url}"></video>`
+              : `<img src="${url}" loading="lazy">`}
           </div>`;
         }).join('');
 
@@ -1244,8 +1271,7 @@ async function loadFeeds(endpoint) {
             <div class="swiper-pagination"></div>
             <div class="swiper-button-prev"></div>
             <div class="swiper-button-next"></div>
-          </div>
-        `;
+          </div>`;
 
         setTimeout(() => {
           new Swiper(`#${swiperId}`, {
@@ -1261,8 +1287,8 @@ async function loadFeeds(endpoint) {
     } catch (e) {
       if (feed.media_url) {
         mediaHTML = feed.media_url.includes('.mp4')
-          ? `<video class="feed-video" controls muted src="${feed.media_url}"></video>`
-          : `<img src="${feed.media_url}">`;
+          ? `<video class="feed-video" controls muted preload="none" loading="lazy" src="${feed.media_url}"></video>`
+          : `<img src="${feed.media_url}" loading="lazy">`;
       }
     }
 
@@ -1284,8 +1310,9 @@ async function loadFeeds(endpoint) {
     </div>`;
   });
 
-  await setupVideoObservers(); // 비디오 Observer 초기화 추가
+  await setupVideoObservers();
 }
+
 
 // ✅ 초기 실행
 checkUser();
