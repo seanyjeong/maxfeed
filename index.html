@@ -43,6 +43,20 @@ nav {
   overflow: hidden;
 }
 
+.like-comment-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #888;
+  margin-left: 10px;
+}
+.like-comment-btn.liked {
+  color: red;
+  font-weight: bold;
+}
+
+
 /* 🔥 타이틀을 왼쪽 정렬 */
 nav .logo {
   font-size: 1.6rem;
@@ -848,6 +862,7 @@ const diff = ((now - date) / 1000) + serverTimeOffset;
 }
 
 
+
 // ✅ 피드 목록 가져오기 (좋아요/댓글 개수 포함, 멀티 미디어 대응)
 // ✅ 피드 목록 가져오기 (슬라이드 + 좋아요 + 댓글 + 삭제 포함)
 
@@ -1072,6 +1087,42 @@ async function loadUserFeeds(userId, userName) {
   });
 }
 
+async function likeComment(commentId) {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    alert("로그인이 필요합니다.");
+    return;
+  }
+
+  const res = await fetch(`${api}/like-comment`, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ comment_id: commentId })
+  });
+
+  if (!res.ok) {
+    const text = await res.text(); // 👈 문제의 HTML일 수도 있음
+    console.error("❌ 서버 오류:", text);
+    alert("댓글 좋아요 실패");
+    return;
+  }
+
+  const data = await res.json(); // 👈 여기서 오류 발생한 것!
+  console.log("✅ 좋아요 응답:", data);
+
+  // ✅ 좋아요 버튼 업데이트
+  const btn = document.querySelector(`#comment-${commentId} .like-comment-btn`);
+  if (btn) {
+    btn.classList.toggle('liked', data.liked);
+    btn.innerText = `❤️ ${data.like_count}`;
+  }
+}
+
+
+
 
 
 
@@ -1163,12 +1214,16 @@ async function commentFeed(feedId, forceOpen = false) {
 
   const isDeleted = comment.deleted == 1;
 
-  let commentLine = `
+  const liked = comment.liked; // 서버에서 같이 내려오게 하면 좋아요 상태 체크 가능
+const likeCount = comment.like_count || 0;
+
+commentLine = `
   <div class="comment ${comment.parent_id ? 'reply' : ''}" id="comment-${comment.id}">
     <div class="comment-left">
       <strong>${comment.name}</strong>:
       ${isDeleted ? '<em style="color:#999;">삭제된 댓글입니다.</em>' : comment.content}
       ${!isDeleted ? `<button class="reply-btn" onclick="toggleReplyInput(${comment.id}, ${feedId})">💬 답글</button>` : ""}
+      ${!isDeleted ? `<button class="like-comment-btn ${liked ? 'liked' : ''}" onclick="likeComment(${comment.id})">❤️ ${likeCount}</button>` : ""}
     </div>
     ${!isDeleted && userId == comment.user_id ? `
       <div class="comment-right">
