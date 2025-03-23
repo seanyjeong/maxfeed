@@ -121,6 +121,24 @@
     background: #0056b3;
   }
   
+  .comment-media {
+    width: 100%;
+    overflow-x: hidden;  /* 🔥 혹시 모를 스크롤 방지 */
+    display: flex;
+    justify-content: flex-start;
+  }
+  
+  .comment-media img,
+  .comment-media video {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    display: block; /* 🔥 inline 요소가 남는 문제 방지 */
+    object-fit: contain;
+  }
+  
+
   
   
   
@@ -165,3 +183,12 @@
     padding: 4px;
   }
 }
+@media screen and (max-width: 480px) {
+    .comment-media img,
+    .comment-media video {
+      max-width: 95%;  /* 💡 살짝 여백 두고 싶을 경우 */
+      margin: 0 auto;  /* 가운데 정렬 */
+    }
+  }
+  
+  
